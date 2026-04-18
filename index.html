@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>STR Solutions — Cashflow Calculator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#0f1117;--card:#1a1d27;--card2:#21243a;--accent:#4f8ef7;
+  --green:#2dd4a0;--red:#f87171;--amber:#fbbf24;--purple:#a78bfa;--orange:#fb923c;
+  --text:#e2e8f0;--muted:#8892a4;--border:#2a2d3e;--radius:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:14px}
+header{padding:14px 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.logo{width:34px;height:34px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:#fff;flex-shrink:0}
+header h1{font-size:18px;font-weight:700;color:#fff}
+.hdr-pills{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+.pill{background:var(--card2);padding:3px 10px;border-radius:20px;border:1px solid var(--border);font-size:11px;color:var(--muted)}
+.pill.warn{border-color:rgba(248,113,113,.5);color:#f87171;background:rgba(248,113,113,.07)}
+.pill.green{border-color:rgba(45,212,160,.5);color:var(--green);background:rgba(45,212,160,.07)}
+.tabs{display:flex;gap:2px;padding:12px 28px 0;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+.tab{padding:8px 14px;cursor:pointer;border-radius:8px 8px 0 0;font-size:12px;font-weight:500;color:var(--muted);border:1px solid transparent;border-bottom:none;white-space:nowrap;transition:.15s}
+.tab:hover{color:var(--text)}.tab.active{background:var(--card);color:var(--accent);border-color:var(--border)}
+.panel{display:none;padding:20px 28px}.panel.active{display:block}
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;margin-bottom:18px}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:13px 15px}
+.kpi label{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);display:block;margin-bottom:4px}
+.kpi .val{font-size:20px;font-weight:700;color:#fff}.kpi .sub{font-size:10px;color:var(--muted);margin-top:2px}
+.kpi.green .val{color:var(--green)}.kpi.red .val{color:var(--red)}.kpi.amber .val{color:var(--amber)}
+.kpi.blue .val{color:var(--accent)}.kpi.purple .val{color:var(--purple)}
+.kpi.warn{border-color:rgba(248,113,113,.35)}.kpi.warn .val{color:var(--red)}
+.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:15px}
+.chart-card.full{grid-column:1/-1}
+.chart-card h3{font-size:10px;font-weight:700;color:var(--muted);margin-bottom:11px;text-transform:uppercase;letter-spacing:.5px}
+canvas{max-height:220px}
+.tbl-wrap{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.tbl-toolbar{padding:9px 13px;display:flex;gap:7px;align-items:center;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.tbl-toolbar input,.tbl-toolbar select{background:var(--card2);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:12px;outline:none}
+.tbl-scroll{overflow-y:auto;max-height:400px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{background:var(--card2);padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);position:sticky;top:0;z-index:1;border-bottom:1px solid var(--border)}
+tbody tr{border-bottom:1px solid var(--border)}tbody tr:hover{background:var(--card2)}tbody td{padding:7px 10px}
+.occ-bar{display:inline-block;height:6px;border-radius:3px;background:var(--accent);opacity:.7;min-width:2px;vertical-align:middle}
+.badge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:9px;font-weight:700}
+.badge.high{background:#1a3a2a;color:var(--green)}.badge.med{background:#2a2a1a;color:var(--amber)}
+.badge.low{background:#2a1a1a;color:var(--red)}.badge.future{background:#1a2a3a;color:var(--accent)}
+.badge.bkg{background:#2a1a3a;color:var(--purple)}.badge.personal{background:#3a1a1a;color:#f87171}
+.badge.biz{background:#1a2a1a;color:var(--green)}.badge.neo{background:#1a1a3a;color:var(--accent)}
+.field{margin-bottom:11px}
+.field label{display:block;font-size:10px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
+.field input,.field select{width:100%;background:var(--card2);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:6px;font-size:13px;outline:none;transition:.15s}
+.field input:focus,.field select:focus{border-color:var(--accent)}
+.field.capex input{border-color:rgba(248,113,113,.4);background:rgba(248,113,113,.04)}
+.field.inject input{border-color:rgba(45,212,160,.4);background:rgba(45,212,160,.04)}
+.field.highlight input{border-color:rgba(251,191,36,.4);background:rgba(251,191,36,.04)}
+.btn{width:100%;padding:9px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-weight:600;font-size:12px;cursor:pointer;margin-top:5px}
+.btn:hover{opacity:.88}
+.calc-grid{display:grid;grid-template-columns:310px 1fr;gap:16px;align-items:start}
+.calc-form{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+.calc-form h3{font-size:13px;font-weight:700;color:var(--text);margin-bottom:13px;padding-bottom:9px;border-bottom:1px solid var(--border)}
+.calc-result{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+.result-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)}
+.result-row:last-child{border-bottom:none}
+.result-row .rl{color:var(--muted);font-size:12px}.result-row .rv{font-size:14px;font-weight:700}
+.result-row .rv.pos{color:var(--green)}.result-row .rv.neg{color:var(--red)}
+.result-row .rv.neu{color:var(--accent)}.result-row .rv.pur{color:var(--purple)}.result-row .rv.amber{color:var(--amber)}
+.result-section{background:var(--card2);border-radius:8px;padding:10px 12px;margin:8px 0}
+.section-head{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin:13px 0 7px;padding-bottom:5px;border-bottom:1px solid var(--border)}
+.warn-banner{background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.25);border-radius:8px;padding:10px 14px;font-size:12px;color:#f87171;margin-bottom:14px}
+.info-banner{background:rgba(79,142,247,.08);border:1px solid rgba(79,142,247,.25);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--accent);margin-bottom:14px}
+.scenario-tabs{display:flex;gap:5px;margin-bottom:14px}
+.stab{padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;color:var(--muted);background:var(--card2);border:1px solid var(--border);transition:.15s}
+.stab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.scenario-panel{display:none}.scenario-panel.active{display:block}
+.solve-box{background:var(--card2);border:2px solid var(--accent);border-radius:var(--radius);padding:18px;text-align:center;margin-bottom:14px}
+.solve-box .sv-val{font-size:40px;font-weight:800;color:var(--accent);margin:8px 0;line-height:1}
+.solve-box .sv-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.solve-box .sv-sub{font-size:11px;color:var(--muted);margin-top:4px}
+.input-row{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.exp-source-tabs{display:flex;gap:5px;margin-bottom:12px}
+.esrc{padding:5px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:500;color:var(--muted);background:var(--card2);border:1px solid var(--border);transition:.15s}
+.esrc.active{background:var(--card);color:var(--text);border-color:var(--accent)}
+.esrc-panel{display:none}.esrc-panel.active{display:block}
+.spend-bar-wrap{width:100px;height:5px;background:var(--border);border-radius:3px;display:inline-block;vertical-align:middle;margin-right:6px}
+.spend-bar{height:5px;border-radius:3px;display:inline-block}
+@media(max-width:900px){.chart-grid,.calc-grid,.input-row{grid-template-columns:1fr}.chart-card.full{grid-column:1}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">STR</div>
+  <h1>STR Solutions — Cashflow Calculator</h1>
+  <div class="hdr-pills">
+    <span class="pill">📅 Apr 18, 2026</span>
+    <span class="pill" id="hdr-props">33 Properties</span>
+    <span class="pill green">$352K Outstanding</span>
+    <span class="pill warn" id="hdr-personal">⚠️ $3,840/mo personal flagged</span>
+  </div>
+</header>
+<div class="tabs">
+  <div class="tab active" onclick="showTab('overview')">📊 Overview</div>
+  <div class="tab"        onclick="showTab('daily')">📅 Daily</div>
+  <div class="tab"        onclick="showTab('expenses')">💸 Expenses</div>
+  <div class="tab"        onclick="showTab('outstanding')">⏳ Outstanding</div>
+  <div class="tab"        onclick="showTab('calculator')">🧮 Forward Calc</div>
+  <div class="tab"        onclick="showTab('scenario')">🎯 Scenario Builder</div>
+</div>
+
+<!-- ══ OVERVIEW ═══════════════════════════════════════════════════════════ -->
+<div class="panel active" id="panel-overview">
+  <div class="warn-banner">⚠️ <b>$3,840/mo in personal charges</b> identified across BMO ($2,582) and Neo ($1,258) business cards — excluded from ops calculations but flagged for your accountant. <b>Owner draws: ~$5,225/mo</b> tracked separately.</div>
+  <div class="kpi-row" id="kpi-overview"></div>
+  <div class="chart-grid">
+    <div class="chart-card full"><h3>Monthly Revenue — 2025 vs 2026 (+ Outstanding Expected)</h3><canvas id="ch-rev"></canvas></div>
+    <div class="chart-card"><h3>ADR by Month — 2025 vs 2026</h3><canvas id="ch-adr"></canvas></div>
+    <div class="chart-card"><h3>Occupancy % by Month</h3><canvas id="ch-occ"></canvas></div>
+  </div>
+</div>
+
+<!-- ══ DAILY ══════════════════════════════════════════════════════════════ -->
+<div class="panel" id="panel-daily">
+  <div class="tbl-wrap">
+    <div class="tbl-toolbar">
+      <select id="yr-sel" onchange="renderDaily()"><option value="2026">2026</option><option value="2025">2025</option></select>
+      <select id="mo-sel" onchange="renderDaily()"><option value="">All Months</option>
+        <option>Jan</option><option>Feb</option><option>Mar</option><option>Apr</option>
+        <option>May</option><option>Jun</option><option>Jul</option><option>Aug</option>
+        <option>Sep</option><option>Oct</option><option>Nov</option><option>Dec</option>
+      </select>
+      <input type="text" id="dt-srch" placeholder="Filter date…" oninput="renderDaily()" style="width:110px">
+      <span id="row-cnt" style="color:var(--muted);font-size:11px;margin-left:auto"></span>
+    </div>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>Date</th><th>Day</th><th>Units</th><th>ADR/Unit</th><th>Occupancy</th>
+        <th>Daily Rev</th><th>Gross</th><th>Bkg.com Pay (−60d)</th><th>Other Pay (+1d)</th><th>Status</th></tr></thead>
+      <tbody id="daily-body"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ══ EXPENSES ═══════════════════════════════════════════════════════════ -->
+<div class="panel" id="panel-expenses">
+  <div class="warn-banner">⚠️ Personal flagged: <b>BMO</b> — restaurants, Winners, Shoppers, Dollarama, Kristine personal ($2,582/mo) · <b>Neo</b> — Food & Dining, Personal/Living ($1,258/mo) · Total personal on biz cards: <b>$3,840/mo</b></div>
+  <div class="kpi-row">
+    <div class="kpi red"><label>Total Biz Ops / Month</label><div class="val" id="kpi-total-ops"></div><div class="sub">BMO personal (flagged)</div></div>
+    <div class="kpi red"><label>Daily Ops Cost</label><div class="val" id="kpi-daily-ops"></div><div class="sub">Business expenses only</div></div>
+    <div class="kpi blue"><label>BMO Ops / Month</label><div class="val" id="kpi-bmo-ops"></div><div class="sub">Cleaning, maintenance, utilities…</div></div>
+    <div class="kpi purple"><label>Neo Ops / Month</label><div class="val" id="kpi-neo-ops"></div><div class="sub">Vendor detail — same funds as BMO</div></div>
+    <div class="kpi" style="grid-column:1/-1;background:rgba(247,196,64,.08);border:1px solid rgba(247,196,64,.3);padding:8px 14px;font-size:11px;color:#f7c440;border-radius:8px">⚠️ <b>No double-counting:</b> Neo Card vendor spend equals the BMO→Neo funding transfer. Total business ops cost = $13,210/mo (BMO outflows only). Neo data shown for vendor-level breakdown only.</div>
+    <div class="kpi warn"><label>⚠️ Personal / Month</label><div class="val" id="kpi-pers-total"></div><div class="sub">BMO + Neo flagged</div></div>
+    <div class="kpi amber"><label>Owner Draws / Month</label><div class="val">$5,225</div><div class="sub">Mike Adams wages (est.)</div></div>
+  </div>
+
+  <div class="exp-source-tabs">
+    <div class="esrc active" onclick="showExpSrc(event,'combined')">📊 Combined View</div>
+    <div class="esrc" onclick="showExpSrc(event,'bmo')">🏦 BMO Card</div>
+    <div class="esrc" onclick="showExpSrc(event,'neo')">💳 Neo Card</div>
+    <div class="esrc" onclick="showExpSrc(event,'personal')">⚠️ Personal Flagged</div>
+  </div>
+
+  <div class="esrc-panel active" id="exp-combined">
+    <div class="chart-grid">
+      <div class="chart-card"><h3>Combined Expense Mix — Monthly Avg</h3><canvas id="ch-combined-pie"></canvas></div>
+      <div class="chart-card"><h3>BMO vs Neo — Business Ops Breakdown</h3><canvas id="ch-source-bar"></canvas></div>
+    </div>
+  </div>
+  <div class="esrc-panel" id="exp-bmo">
+    <div class="tbl-wrap">
+      <div class="tbl-toolbar"><span style="font-size:11px;color:var(--muted)">BMO Business Operating Expenses — Monthly Average</span>
+        <select id="txn-filter" onchange="renderTxns()" style="margin-left:auto">
+          <option value="all">All</option><option value="business">Business</option>
+          <option value="personal">Personal</option><option value="owner_draw">Owner Draw</option>
+        </select>
+        <input type="text" id="txn-srch" placeholder="Search…" oninput="renderTxns()" style="width:120px">
+        <span id="txn-cnt" style="color:var(--muted);font-size:11px"></span>
+      </div>
+      <div class="tbl-scroll"><table>
+        <thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Amount</th><th>Type</th></tr></thead>
+        <tbody id="txn-body"></tbody>
+      </table></div>
+    </div>
+  </div>
+  <div class="esrc-panel" id="exp-neo">
+    <div class="chart-grid">
+      <div class="chart-card"><h3>Neo Card — Business Spend by Category</h3><canvas id="ch-neo-pie"></canvas></div>
+      <div class="chart-card"><h3>Neo Software Stack — Top Vendors ($/mo)</h3><canvas id="ch-neo-sw"></canvas></div>
+    </div>
+    <div class="tbl-wrap" style="margin-top:12px">
+      <div class="tbl-toolbar"><span style="font-size:11px;color:var(--muted)">Neo Card — All Vendors (Monthly Average, projected forward)</span>
+        <input type="text" id="neo-srch" placeholder="Search vendor…" oninput="renderNeo()" style="width:130px;margin-left:auto">
+      </div>
+      <div class="tbl-scroll"><table>
+        <thead><tr><th>Vendor</th><th>Category</th><th>Monthly Avg</th><th>Annual Est.</th><th>Type</th></tr></thead>
+        <tbody id="neo-body"></tbody>
+      </table></div>
+    </div>
+  </div>
+  <div class="esrc-panel" id="exp-personal">
+    <div class="info-banner">These transactions appear on business accounts but are personal in nature. They should be tracked separately, reimbursed to the company, or treated as owner benefits. Total flagged: <b>$3,840/mo</b> across both cards.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="tbl-wrap">
+        <div class="tbl-toolbar"><span style="font-size:11px;color:#f87171">⚠️ BMO Personal — $2,582/mo</span></div>
+        <div class="tbl-scroll"><table>
+          <thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Amount</th></tr></thead>
+          <tbody id="pers-bmo-body"></tbody>
+        </table></div>
+      </div>
+      <div class="tbl-wrap">
+        <div class="tbl-toolbar"><span style="font-size:11px;color:#f87171">⚠️ Neo Personal — $1,258/mo avg</span></div>
+        <div class="tbl-scroll"><table>
+          <thead><tr><th>Vendor</th><th>Category</th><th>Monthly Avg</th></tr></thead>
+          <tbody id="pers-neo-body"></tbody>
+        </table></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ OUTSTANDING ════════════════════════════════════════════════════════ -->
+<div class="panel" id="panel-outstanding">
+  <div class="kpi-row">
+    <div class="kpi green"><label>Total Outstanding</label><div class="val" id="kpi-totout"></div><div class="sub">Confirmed, not yet received</div></div>
+    <div class="kpi blue"><label>Bookings</label><div class="val" id="kpi-outcnt"></div><div class="sub">Future paid reservations</div></div>
+    <div class="kpi purple"><label>Peak Month</label><div class="val">July 2026</div><div class="sub">$96,871 expected</div></div>
+    <div class="kpi green"><label>Jun–Aug</label><div class="val">$239,943</div><div class="sub">Summer high season</div></div>
+  </div>
+  <div class="chart-grid">
+    <div class="chart-card"><h3>💳 Booking.com — Cash Arrives 60 Days Before Arrival</h3><canvas id="ch-bkg"></canvas></div>
+    <div class="chart-card"><h3>✅ Airbnb / VRBO / Other — Cash 1 Day After Checkout</h3><canvas id="ch-oth"></canvas></div>
+  </div>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Arrival Month</th><th>Bookings</th><th>Expected Rent</th><th>Avg Nights</th>
+      <th>Bkg.com Pay Date (−60d)</th><th>Other Pay Date (+1d checkout)</th></tr></thead>
+    <tbody id="out-body"></tbody>
+  </table></div>
+</div>
+
+<!-- ══ FORWARD CALCULATOR ════════════════════════════════════════════════ -->
+<div class="panel" id="panel-calculator">
+  <div class="calc-grid">
+    <div class="calc-form">
+      <h3>🧮 Forward Cashflow Calculator</h3>
+      <div class="section-head">Portfolio</div>
+      <div class="field"><label>Active Properties</label>
+        <input type="number" id="c-props" value="33" min="1" oninput="calcForward()"></div>
+      <div class="field"><label>Target ADR ($/night)</label>
+        <input type="number" id="c-adr" value="175" oninput="calcForward()"></div>
+      <div class="field"><label>Occupancy (%)</label>
+        <input type="number" id="c-occ" value="65" oninput="calcForward()"></div>
+      <div class="field"><label>Available Nights / Property / Month</label>
+        <input type="number" id="c-avail" value="25" oninput="calcForward()"></div>
+
+      <div class="section-head">Payment Timing Split</div>
+      <div class="field"><label>Booking.com % of Revenue</label>
+        <input type="number" id="c-bkg-pct" value="40" min="0" max="100" oninput="calcForward()"></div>
+      <p style="font-size:10px;color:var(--muted);margin-top:-6px;margin-bottom:10px">Bkg.com cash −60d · Others cash +1d post-checkout</p>
+
+      <div class="section-head">Operating Costs</div>
+      <div class="field"><label>BMO Monthly Ops ($)</label>
+        <input type="number" id="c-bmo-ops" value="13210" oninput="calcForward()"></div>
+      <div class="field"><label>Additional Expenses ($) <span style="font-size:10px;opacity:.6">(Neo included in BMO)</span></label>
+        <input type="number" id="c-neo-ops" value="0" oninput="calcForward()"></div>
+      <p id="combined-ops-display" style="font-size:11px;color:var(--muted);margin-top:-6px;margin-bottom:10px"></p>
+
+      <div class="section-head" style="color:var(--red)">⬇ CAPEX / Debt Repayment</div>
+      <div class="field capex"><label>Monthly CAPEX / Debt ($)</label>
+        <input type="number" id="c-capex" value="0" placeholder="e.g. 2500" oninput="calcForward()"></div>
+      <div class="field capex"><label>One-Time Capital Expense ($)</label>
+        <input type="number" id="c-capex-once" value="0" placeholder="e.g. 15000" oninput="calcForward()"></div>
+
+      <div class="section-head" style="color:var(--green)">⬆ Capital Injection</div>
+      <div class="field inject"><label>One-Time Injection ($)</label>
+        <input type="number" id="c-inject" value="0" placeholder="e.g. 50000" oninput="calcForward()"></div>
+      <div class="field inject"><label>Monthly Injection ($)</label>
+        <input type="number" id="c-inject-mo" value="0" placeholder="e.g. 5000" oninput="calcForward()"></div>
+
+      <div class="section-head">Period & Outstanding</div>
+      <div class="field"><label>Projection Period</label>
+        <select id="c-period" onchange="calcForward()">
+          <option value="1">1 Month</option><option value="3" selected>3 Months</option>
+          <option value="6">6 Months</option><option value="12">12 Months</option>
+        </select></div>
+      <div class="field"><label>Outstanding Receivables ($)</label>
+        <input type="number" id="c-out" value="352313" oninput="calcForward()"></div>
+      <div class="field"><label>Spread Over (months)</label>
+        <select id="c-outmo" onchange="calcForward()">
+          <option value="3" selected>3 months</option><option value="6">6 months</option><option value="12">12 months</option>
+        </select></div>
+    </div>
+    <div>
+      <div class="calc-result" id="fwd-out"></div>
+      <div class="chart-card" style="margin-top:13px"><h3>Monthly Cashflow Projection</h3><canvas id="ch-proj"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SCENARIO BUILDER ═══════════════════════════════════════════════════ -->
+<div class="panel" id="panel-scenario">
+  <div class="scenario-tabs">
+    <div class="stab active" onclick="showScenario(event,'goalseek')">🎯 Goal Seek</div>
+    <div class="stab"        onclick="showScenario(event,'daterange')">📅 Date Range</div>
+    <div class="stab"        onclick="showScenario(event,'compare')">⚖️ Compare</div>
+  </div>
+
+  <div class="scenario-panel active" id="sc-goalseek">
+    <div class="calc-grid">
+      <div class="calc-form">
+        <h3>🎯 Goal Seek — What Do I Need?</h3>
+        <div class="field highlight"><label>Target Net Profit ($/day)</label>
+          <input type="number" id="gs-target" value="500" oninput="goalSeek()"></div>
+        <div class="field"><label>Solve For</label>
+          <select id="gs-solve" onchange="goalSeek()">
+            <option value="props">Properties Needed</option>
+            <option value="adr">ADR Needed ($/night)</option>
+            <option value="occ">Occupancy % Needed</option>
+          </select></div>
+        <div class="field"><label>ADR ($/night)</label><input type="number" id="gs-adr" value="175" oninput="goalSeek()"></div>
+        <div class="field"><label>Occupancy (%)</label><input type="number" id="gs-occ" value="65" oninput="goalSeek()"></div>
+        <div class="field"><label>Avail Nights / Property / Month</label><input type="number" id="gs-avail" value="25" oninput="goalSeek()"></div>
+        <div class="field"><label>BMO Monthly Ops ($)</label><input type="number" id="gs-bmo" value="13210" oninput="goalSeek()"></div>
+        <div class="field"><label>Additional Expenses ($) <span style="font-size:10px;opacity:.6">(Neo included in BMO)</span></label><input type="number" id="gs-neo" value="8873" oninput="goalSeek()"></div>
+        <div class="field capex"><label>Monthly CAPEX / Debt ($)</label><input type="number" id="gs-capex" value="0" oninput="goalSeek()"></div>
+        <div class="field inject"><label>Monthly Injection ($)</label><input type="number" id="gs-inject" value="0" oninput="goalSeek()"></div>
+        <div class="field" id="gs-props-field"><label>Properties (for ADR/Occ solve)</label><input type="number" id="gs-props" value="33" oninput="goalSeek()"></div>
+      </div>
+      <div>
+        <div id="gs-solve-box"></div>
+        <div class="chart-card" style="margin-top:12px"><h3>Properties Needed vs Daily Profit Target</h3><canvas id="ch-goalseek"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="scenario-panel" id="sc-daterange">
+    <div class="calc-grid">
+      <div class="calc-form">
+        <h3>📅 Date Range Scenario</h3>
+        <div class="input-row">
+          <div class="field"><label>Start Date</label><input type="date" id="dr-start" value="2026-05-01" onchange="dateRange()"></div>
+          <div class="field"><label>End Date</label><input type="date" id="dr-end" value="2026-08-31" onchange="dateRange()"></div>
+        </div>
+        <div class="field"><label>Properties</label><input type="number" id="dr-props" value="33" oninput="dateRange()"></div>
+        <div class="field"><label>ADR ($/night)</label><input type="number" id="dr-adr" value="175" oninput="dateRange()"></div>
+        <div class="field"><label>Occupancy (%)</label><input type="number" id="dr-occ" value="65" oninput="dateRange()"></div>
+        <div class="field"><label>Avail Nights / mo</label><input type="number" id="dr-avail" value="25" oninput="dateRange()"></div>
+        <div class="field"><label>BMO Ops ($)</label><input type="number" id="dr-bmo" value="13210" oninput="dateRange()"></div>
+        <div class="field"><label>Neo Ops ($)</label><input type="number" id="dr-neo" value="8873" oninput="dateRange()"></div>
+        <div class="field"><label>Bkg.com % of Revenue</label><input type="number" id="dr-bkg" value="40" oninput="dateRange()"></div>
+        <div class="field"><label>Outstanding in Period ($)</label><input type="number" id="dr-out" value="0" oninput="dateRange()"></div>
+        <div class="field capex"><label>Monthly CAPEX/Debt ($)</label><input type="number" id="dr-capex" value="0" oninput="dateRange()"></div>
+        <div class="field capex"><label>One-Time CAPEX ($)</label><input type="number" id="dr-capex-once" value="0" oninput="dateRange()"></div>
+        <div class="field inject"><label>Capital Injection ($)</label><input type="number" id="dr-inject" value="0" oninput="dateRange()"></div>
+      </div>
+      <div id="dr-result"></div>
+    </div>
+    <div class="chart-card full" style="margin-top:14px"><h3>Weekly Revenue vs Expense — Selected Period</h3><canvas id="ch-daterange"></canvas></div>
+  </div>
+
+  <div class="scenario-panel" id="sc-compare">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px">
+      <div class="calc-form">
+        <h3 style="color:var(--accent)">Scenario A</h3>
+        <div class="field"><label>Properties</label><input type="number" id="sa-props" value="20" oninput="compareScenarios()"></div>
+        <div class="field"><label>ADR ($)</label><input type="number" id="sa-adr" value="150" oninput="compareScenarios()"></div>
+        <div class="field"><label>Occupancy (%)</label><input type="number" id="sa-occ" value="55" oninput="compareScenarios()"></div>
+        <div class="field"><label>Avail Nights</label><input type="number" id="sa-avail" value="25" oninput="compareScenarios()"></div>
+        <div class="field"><label>BMO Ops ($)</label><input type="number" id="sa-bmo" value="13210" oninput="compareScenarios()"></div>
+        <div class="field"><label>Neo Ops ($)</label><input type="number" id="sa-neo" value="8873" oninput="compareScenarios()"></div>
+        <div class="field capex"><label>CAPEX ($)</label><input type="number" id="sa-capex" value="0" oninput="compareScenarios()"></div>
+        <div class="field inject"><label>Injection ($)</label><input type="number" id="sa-inject" value="0" oninput="compareScenarios()"></div>
+      </div>
+      <div class="calc-form">
+        <h3 style="color:var(--green)">Scenario B</h3>
+        <div class="field"><label>Properties</label><input type="number" id="sb-props" value="33" oninput="compareScenarios()"></div>
+        <div class="field"><label>ADR ($)</label><input type="number" id="sb-adr" value="175" oninput="compareScenarios()"></div>
+        <div class="field"><label>Occupancy (%)</label><input type="number" id="sb-occ" value="65" oninput="compareScenarios()"></div>
+        <div class="field"><label>Avail Nights</label><input type="number" id="sb-avail" value="25" oninput="compareScenarios()"></div>
+        <div class="field"><label>BMO Ops ($)</label><input type="number" id="sb-bmo" value="13210" oninput="compareScenarios()"></div>
+        <div class="field"><label>Neo Ops ($)</label><input type="number" id="sb-neo" value="8873" oninput="compareScenarios()"></div>
+        <div class="field capex"><label>CAPEX ($)</label><input type="number" id="sb-capex" value="0" oninput="compareScenarios()"></div>
+        <div class="field inject"><label>Injection ($)</label><input type="number" id="sb-inject" value="0" oninput="compareScenarios()"></div>
+      </div>
+      <div class="calc-form">
+        <h3 style="color:var(--amber)">Scenario C</h3>
+        <div class="field"><label>Properties</label><input type="number" id="sc2-props" value="50" oninput="compareScenarios()"></div>
+        <div class="field"><label>ADR ($)</label><input type="number" id="sc2-adr" value="200" oninput="compareScenarios()"></div>
+        <div class="field"><label>Occupancy (%)</label><input type="number" id="sc2-occ" value="75" oninput="compareScenarios()"></div>
+        <div class="field"><label>Avail Nights</label><input type="number" id="sc2-avail" value="25" oninput="compareScenarios()"></div>
+        <div class="field"><label>BMO Ops ($)</label><input type="number" id="sc2-bmo" value="13210" oninput="compareScenarios()"></div>
+        <div class="field"><label>Neo Ops ($)</label><input type="number" id="sc2-neo" value="10000" oninput="compareScenarios()"></div>
+        <div class="field capex"><label>CAPEX ($)</label><input type="number" id="sc2-capex" value="0" oninput="compareScenarios()"></div>
+        <div class="field inject"><label>Injection ($)</label><input type="number" id="sc2-inject" value="0" oninput="compareScenarios()"></div>
+      </div>
+    </div>
+    <div id="compare-kpis" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px"></div>
+    <div class="chart-card full"><h3>12-Month Net Cashflow Comparison</h3><canvas id="ch-compare"></canvas></div>
+  </div>
+</div>
+
+<script>
+const SD={"d26": [{"d": "2026-01-01", "r": 520.0, "a": 86.67, "o": 18.2, "u": 6, "g": 690.56}, {"d": "2026-01-02", "r": 621.5, "a": 88.79, "o": 21.2, "u": 7, "g": 841.25}, {"d": "2026-01-03", "r": 495.25, "a": 99.05, "o": 15.2, "u": 5, "g": 813.03}, {"d": "2026-01-04", "r": 119.25, "a": 59.63, "o": 6.1, "u": 2, "g": 195.43}, {"d": "2026-01-05", "r": 128.63, "a": 64.31, "o": 12.1, "u": 4, "g": 143.3}, {"d": "2026-01-06", "r": 197.63, "a": 65.88, "o": 15.2, "u": 5, "g": 271.56}, {"d": "2026-01-07", "r": 257.03, "a": 64.26, "o": 18.2, "u": 6, "g": 361.0}, {"d": "2026-01-08", "r": 188.03, "a": 62.68, "o": 15.2, "u": 5, "g": 232.74}, {"d": "2026-01-09", "r": 235.27, "a": 58.82, "o": 12.1, "u": 4, "g": 339.41}, {"d": "2026-01-10", "r": 309.27, "a": 61.85, "o": 15.2, "u": 5, "g": 498.33}, {"d": "2026-01-11", "r": 128.63, "a": 64.31, "o": 6.1, "u": 2, "g": 143.3}, {"d": "2026-01-12", "r": 128.63, "a": 64.31, "o": 12.1, "u": 4, "g": 143.3}, {"d": "2026-01-13", "r": 175.88, "a": 58.63, "o": 15.2, "u": 5, "g": 233.48}, {"d": "2026-01-14", "r": 175.88, "a": 58.63, "o": 15.2, "u": 5, "g": 233.48}, {"d": "2026-01-15", "r": 175.88, "a": 58.63, "o": 15.2, "u": 5, "g": 233.48}, {"d": "2026-01-16", "r": 372.63, "a": 74.53, "o": 15.2, "u": 5, "g": 598.13}, {"d": "2026-01-17", "r": 349.13, "a": 87.28, "o": 12.1, "u": 4, "g": 526.9}, {"d": "2026-01-18", "r": 147.13, "a": 73.56, "o": 6.1, "u": 2, "g": 190.05}, {"d": "2026-01-19", "r": 73.13, "a": 73.13, "o": 9.1, "u": 3, "g": 74.51}, {"d": "2026-01-20", "r": 73.13, "a": 73.13, "o": 9.1, "u": 3, "g": 74.51}, {"d": "2026-01-21", "r": 128.63, "a": 64.31, "o": 12.1, "u": 4, "g": 186.73}, {"d": "2026-01-22", "r": 128.63, "a": 64.31, "o": 12.1, "u": 4, "g": 186.73}, {"d": "2026-01-23", "r": 253.13, "a": 84.38, "o": 9.1, "u": 3, "g": 341.66}, {"d": "2026-01-24", "r": 253.13, "a": 84.38, "o": 9.1, "u": 3, "g": 341.66}, {"d": "2026-01-25", "r": 73.13, "a": 73.13, "o": 3.0, "u": 1, "g": 74.51}, {"d": "2026-01-26", "r": 73.13, "a": 73.13, "o": 6.1, "u": 2, "g": 74.51}, {"d": "2026-01-27", "r": 138.79, "a": 69.4, "o": 9.1, "u": 3, "g": 163.08}, {"d": "2026-01-28", "r": 194.29, "a": 64.76, "o": 12.1, "u": 4, "g": 258.79}, {"d": "2026-01-29", "r": 255.29, "a": 63.82, "o": 15.2, "u": 5, "g": 365.6}, {"d": "2026-01-30", "r": 407.17, "a": 67.86, "o": 18.2, "u": 6, "g": 613.05}, {"d": "2026-01-31", "r": 351.67, "a": 70.33, "o": 15.2, "u": 5, "g": 517.34}, {"d": "2026-02-01", "r": 153.79, "a": 76.9, "o": 6.1, "u": 2, "g": 214.48}, {"d": "2026-02-02", "r": 65.66, "a": 65.66, "o": 6.1, "u": 2, "g": 88.57}, {"d": "2026-02-03", "r": 0.0, "a": 0.0, "o": 3.0, "u": 1, "g": 0.0}, {"d": "2026-02-04", "r": 0.0, "a": 0.0, "o": 3.0, "u": 1, "g": 0.0}, {"d": "2026-02-05", "r": 151.89, "a": 75.94, "o": 9.1, "u": 3, "g": 239.64}, {"d": "2026-02-06", "r": 414.89, "a": 82.98, "o": 15.2, "u": 5, "g": 740.23}, {"d": "2026-02-07", "r": 375.0, "a": 93.75, "o": 12.1, "u": 4, "g": 611.36}, {"d": "2026-02-08", "r": 175.86, "a": 87.93, "o": 6.1, "u": 2, "g": 246.8}, {"d": "2026-02-09", "r": 85.86, "a": 85.86, "o": 6.1, "u": 2, "g": 115.67}, {"d": "2026-02-10", "r": 85.86, "a": 85.86, "o": 6.1, "u": 2, "g": 115.67}, {"d": "2026-02-11", "r": 85.86, "a": 85.86, "o": 6.1, "u": 2, "g": 115.67}, {"d": "2026-02-12", "r": 157.86, "a": 78.93, "o": 9.1, "u": 3, "g": 241.53}, {"d": "2026-02-13", "r": 377.53, "a": 94.38, "o": 12.1, "u": 4, "g": 529.73}, {"d": "2026-02-14", "r": 753.64, "a": 125.61, "o": 18.2, "u": 6, "g": 1168.59}, {"d": "2026-02-15", "r": 738.19, "a": 123.03, "o": 18.2, "u": 6, "g": 1069.41}, {"d": "2026-02-16", "r": 218.05, "a": 109.03, "o": 6.1, "u": 2, "g": 304.54}, {"d": "2026-02-17", "r": 362.05, "a": 90.51, "o": 12.1, "u": 4, "g": 522.52}, {"d": "2026-02-18", "r": 283.0, "a": 94.33, "o": 9.1, "u": 3, "g": 400.19}, {"d": "2026-02-19", "r": 411.0, "a": 102.75, "o": 12.1, "u": 4, "g": 555.83}, {"d": "2026-02-20", "r": 614.0, "a": 102.33, "o": 18.2, "u": 6, "g": 885.49}, {"d": "2026-02-21", "r": 683.0, "a": 113.83, "o": 18.2, "u": 6, "g": 1075.84}, {"d": "2026-02-22", "r": 128.0, "a": 128.0, "o": 3.0, "u": 1, "g": 155.64}, {"d": "2026-02-23", "r": 382.03, "a": 95.51, "o": 12.1, "u": 4, "g": 515.18}, {"d": "2026-02-24", "r": 382.03, "a": 95.51, "o": 12.1, "u": 4, "g": 515.18}, {"d": "2026-02-25", "r": 382.03, "a": 95.51, "o": 12.1, "u": 4, "g": 515.18}, {"d": "2026-02-26", "r": 326.53, "a": 108.84, "o": 9.1, "u": 3, "g": 415.02}, {"d": "2026-02-27", "r": 580.28, "a": 96.71, "o": 18.2, "u": 6, "g": 840.42}, {"d": "2026-02-28", "r": 666.28, "a": 111.05, "o": 18.2, "u": 6, "g": 980.2}, {"d": "2026-03-01", "r": 202.98, "a": 67.66, "o": 9.1, "u": 3, "g": 358.74}, {"d": "2026-03-02", "r": 370.27, "a": 74.05, "o": 15.2, "u": 5, "g": 562.25}, {"d": "2026-03-03", "r": 370.27, "a": 74.05, "o": 15.2, "u": 5, "g": 562.25}, {"d": "2026-03-04", "r": 547.27, "a": 91.21, "o": 18.2, "u": 6, "g": 847.98}, {"d": "2026-03-05", "r": 580.08, "a": 96.68, "o": 18.2, "u": 6, "g": 893.01}, {"d": "2026-03-06", "r": 415.2, "a": 83.04, "o": 15.2, "u": 5, "g": 654.86}, {"d": "2026-03-07", "r": 658.74, "a": 109.79, "o": 18.2, "u": 6, "g": 1151.33}, {"d": "2026-03-08", "r": 112.0, "a": 112.0, "o": 3.0, "u": 1, "g": 157.46}, {"d": "2026-03-09", "r": 139.0, "a": 139.0, "o": 3.0, "u": 1, "g": 182.21}, {"d": "2026-03-10", "r": 211.0, "a": 105.5, "o": 6.1, "u": 2, "g": 289.91}, {"d": "2026-03-11", "r": 211.0, "a": 105.5, "o": 6.1, "u": 2, "g": 289.91}, {"d": "2026-03-12", "r": 211.0, "a": 105.5, "o": 6.1, "u": 2, "g": 289.91}, {"d": "2026-03-13", "r": 698.78, "a": 139.76, "o": 15.2, "u": 5, "g": 1051.51}, {"d": "2026-03-14", "r": 933.01, "a": 155.5, "o": 18.2, "u": 6, "g": 1378.2}, {"d": "2026-03-15", "r": 396.23, "a": 132.08, "o": 9.1, "u": 3, "g": 585.16}, {"d": "2026-03-16", "r": 139.0, "a": 139.0, "o": 3.0, "u": 1, "g": 182.21}, {"d": "2026-03-17", "r": 247.0, "a": 123.5, "o": 6.1, "u": 2, "g": 362.56}, {"d": "2026-03-18", "r": 247.0, "a": 123.5, "o": 6.1, "u": 2, "g": 362.56}, {"d": "2026-03-19", "r": 247.0, "a": 123.5, "o": 6.1, "u": 2, "g": 362.56}, {"d": "2026-03-20", "r": 561.11, "a": 140.28, "o": 12.1, "u": 4, "g": 841.54}, {"d": "2026-03-21", "r": 654.92, "a": 130.98, "o": 15.2, "u": 5, "g": 1054.07}, {"d": "2026-03-22", "r": 71.55, "a": 71.55, "o": 3.0, "u": 1, "g": 136.07}, {"d": "2026-03-23", "r": 210.55, "a": 105.28, "o": 6.1, "u": 2, "g": 318.29}, {"d": "2026-03-24", "r": 139.0, "a": 139.0, "o": 3.0, "u": 1, "g": 182.21}, {"d": "2026-03-25", "r": 217.98, "a": 108.99, "o": 6.1, "u": 2, "g": 352.28}, {"d": "2026-03-26", "r": 460.63, "a": 115.16, "o": 12.1, "u": 4, "g": 717.66}, {"d": "2026-03-27", "r": 593.65, "a": 118.73, "o": 15.2, "u": 5, "g": 900.65}, {"d": "2026-03-28", "r": 780.0, "a": 156.0, "o": 15.2, "u": 5, "g": 1117.34}, {"d": "2026-03-29", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-03-30", "r": 139.0, "a": 139.0, "o": 3.0, "u": 1, "g": 182.21}, {"d": "2026-03-31", "r": 256.0, "a": 128.0, "o": 6.1, "u": 2, "g": 342.54}, {"d": "2026-04-01", "r": 256.0, "a": 128.0, "o": 6.1, "u": 2, "g": 342.54}, {"d": "2026-04-02", "r": 863.98, "a": 144.0, "o": 18.2, "u": 6, "g": 1147.39}, {"d": "2026-04-03", "r": 1012.61, "a": 144.66, "o": 21.2, "u": 7, "g": 1456.73}, {"d": "2026-04-04", "r": 772.63, "a": 154.53, "o": 18.2, "u": 6, "g": 1076.94}, {"d": "2026-04-05", "r": 417.0, "a": 139.0, "o": 9.1, "u": 3, "g": 596.84}, {"d": "2026-04-06", "r": 439.0, "a": 146.33, "o": 9.1, "u": 3, "g": 591.16}, {"d": "2026-04-07", "r": 289.0, "a": 144.5, "o": 6.1, "u": 2, "g": 401.86}, {"d": "2026-04-08", "r": 139.0, "a": 139.0, "o": 3.0, "u": 1, "g": 186.22}, {"d": "2026-04-09", "r": 539.26, "a": 134.81, "o": 12.1, "u": 4, "g": 714.7}, {"d": "2026-04-10", "r": 918.26, "a": 153.04, "o": 18.2, "u": 6, "g": 1252.68}, {"d": "2026-04-11", "r": 768.26, "a": 153.65, "o": 15.2, "u": 5, "g": 1029.41}, {"d": "2026-04-12", "r": 139.0, "a": 139.0, "o": 3.0, "u": 1, "g": 180.12}, {"d": "2026-04-13", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-04-14", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-04-15", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-04-16", "r": 97.52, "a": 97.52, "o": 3.0, "u": 1, "g": 143.2}, {"d": "2026-04-17", "r": 1248.97, "a": 178.42, "o": 21.2, "u": 7, "g": 1797.42}, {"d": "2026-04-18", "r": 1055.97, "a": 176.0, "o": 18.2, "u": 6, "g": 1512.72}, {"d": "2026-04-19", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-04-20", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-04-21", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-04-22", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-04-23", "r": 212.68, "a": 106.34, "o": 9.1, "u": 3, "g": 306.33}, {"d": "2026-04-24", "r": 524.2, "a": 131.05, "o": 15.2, "u": 5, "g": 800.45}, {"d": "2026-04-25", "r": 853.82, "a": 142.3, "o": 21.2, "u": 7, "g": 1336.77}, {"d": "2026-04-26", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-04-27", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-04-28", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-04-29", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-04-30", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-05-01", "r": 322.0, "a": 322.0, "o": 3.0, "u": 1, "g": 376.83}, {"d": "2026-05-02", "r": 322.0, "a": 322.0, "o": 3.0, "u": 1, "g": 376.83}, {"d": "2026-05-03", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-05-04", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-05-05", "r": 149.33, "a": 149.33, "o": 3.0, "u": 1, "g": 182.42}, {"d": "2026-05-06", "r": 149.33, "a": 149.33, "o": 3.0, "u": 1, "g": 182.42}, {"d": "2026-05-07", "r": 284.33, "a": 142.17, "o": 6.1, "u": 2, "g": 396.42}, {"d": "2026-05-08", "r": 511.65, "a": 170.55, "o": 9.1, "u": 3, "g": 690.84}, {"d": "2026-05-09", "r": 511.65, "a": 170.55, "o": 9.1, "u": 3, "g": 690.84}, {"d": "2026-05-10", "r": 149.33, "a": 149.33, "o": 3.0, "u": 1, "g": 182.42}, {"d": "2026-05-11", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-05-12", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-05-13", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-05-14", "r": 385.92, "a": 385.92, "o": 3.0, "u": 1, "g": 590.94}, {"d": "2026-05-15", "r": 296.72, "a": 148.36, "o": 6.1, "u": 2, "g": 462.91}, {"d": "2026-05-16", "r": 945.41, "a": 236.35, "o": 12.1, "u": 4, "g": 1195.66}, {"d": "2026-05-17", "r": 698.41, "a": 232.8, "o": 9.1, "u": 3, "g": 877.81}, {"d": "2026-05-18", "r": 656.49, "a": 328.24, "o": 6.1, "u": 2, "g": 851.44}, {"d": "2026-05-19", "r": 947.01, "a": 315.67, "o": 9.1, "u": 3, "g": 1229.7}, {"d": "2026-05-20", "r": 290.52, "a": 290.52, "o": 3.0, "u": 1, "g": 378.27}, {"d": "2026-05-21", "r": 949.27, "a": 316.42, "o": 9.1, "u": 3, "g": 1180.07}, {"d": "2026-05-22", "r": 1421.05, "a": 355.26, "o": 12.1, "u": 4, "g": 1807.74}, {"d": "2026-05-23", "r": 1903.62, "a": 317.27, "o": 18.2, "u": 6, "g": 2441.04}, {"d": "2026-05-24", "r": 909.58, "a": 454.79, "o": 6.1, "u": 2, "g": 1122.64}, {"d": "2026-05-25", "r": 1042.52, "a": 521.26, "o": 6.1, "u": 2, "g": 1413.49}, {"d": "2026-05-26", "r": 369.0, "a": 369.0, "o": 3.0, "u": 1, "g": 462.24}, {"d": "2026-05-27", "r": 369.0, "a": 369.0, "o": 3.0, "u": 1, "g": 462.24}, {"d": "2026-05-28", "r": 1061.5, "a": 530.75, "o": 6.1, "u": 2, "g": 1292.72}, {"d": "2026-05-29", "r": 1371.95, "a": 342.99, "o": 12.1, "u": 4, "g": 1793.72}, {"d": "2026-05-30", "r": 679.45, "a": 226.48, "o": 9.1, "u": 3, "g": 963.25}, {"d": "2026-05-31", "r": 663.52, "a": 331.76, "o": 6.1, "u": 2, "g": 1114.43}, {"d": "2026-06-01", "r": 688.96, "a": 344.48, "o": 6.1, "u": 2, "g": 876.91}, {"d": "2026-06-02", "r": 369.36, "a": 369.36, "o": 3.0, "u": 1, "g": 439.71}, {"d": "2026-06-03", "r": 479.79, "a": 239.9, "o": 6.1, "u": 2, "g": 619.2}, {"d": "2026-06-04", "r": 1529.57, "a": 305.91, "o": 15.2, "u": 5, "g": 2071.1}, {"d": "2026-06-05", "r": 1594.2, "a": 265.7, "o": 18.2, "u": 6, "g": 2015.13}, {"d": "2026-06-06", "r": 1172.68, "a": 293.17, "o": 15.2, "u": 5, "g": 1439.97}, {"d": "2026-06-07", "r": 1364.03, "a": 454.68, "o": 9.1, "u": 3, "g": 1794.27}, {"d": "2026-06-08", "r": 1418.65, "a": 472.88, "o": 9.1, "u": 3, "g": 1751.6}, {"d": "2026-06-09", "r": 1714.77, "a": 428.69, "o": 12.1, "u": 4, "g": 2074.79}, {"d": "2026-06-10", "r": 2860.1, "a": 408.59, "o": 21.2, "u": 7, "g": 3694.64}, {"d": "2026-06-11", "r": 2161.22, "a": 360.2, "o": 18.2, "u": 6, "g": 2620.11}, {"d": "2026-06-12", "r": 3499.24, "a": 349.92, "o": 30.3, "u": 10, "g": 4448.3}, {"d": "2026-06-13", "r": 2268.0, "a": 283.5, "o": 24.2, "u": 8, "g": 2977.11}, {"d": "2026-06-14", "r": 2326.28, "a": 387.71, "o": 18.2, "u": 6, "g": 2996.22}, {"d": "2026-06-15", "r": 1856.07, "a": 371.21, "o": 15.2, "u": 5, "g": 2566.13}, {"d": "2026-06-16", "r": 736.92, "a": 368.46, "o": 6.1, "u": 2, "g": 919.28}, {"d": "2026-06-17", "r": 2419.35, "a": 403.22, "o": 18.2, "u": 6, "g": 3073.74}, {"d": "2026-06-18", "r": 2831.86, "a": 471.98, "o": 18.2, "u": 6, "g": 3378.26}, {"d": "2026-06-19", "r": 4838.67, "a": 372.21, "o": 39.4, "u": 13, "g": 6068.15}, {"d": "2026-06-20", "r": 4800.35, "a": 342.88, "o": 42.4, "u": 14, "g": 6209.62}, {"d": "2026-06-21", "r": 2064.26, "a": 294.89, "o": 21.2, "u": 7, "g": 2606.49}, {"d": "2026-06-22", "r": 1548.04, "a": 221.15, "o": 21.2, "u": 7, "g": 2107.31}, {"d": "2026-06-23", "r": 2990.66, "a": 299.07, "o": 30.3, "u": 10, "g": 3853.84}, {"d": "2026-06-24", "r": 2906.46, "a": 290.65, "o": 30.3, "u": 10, "g": 3544.27}, {"d": "2026-06-25", "r": 2599.66, "a": 288.85, "o": 27.3, "u": 9, "g": 3115.31}, {"d": "2026-06-26", "r": 4106.48, "a": 373.32, "o": 33.3, "u": 11, "g": 5168.6}, {"d": "2026-06-27", "r": 4372.1, "a": 336.32, "o": 39.4, "u": 13, "g": 5596.59}, {"d": "2026-06-28", "r": 2743.77, "a": 457.3, "o": 18.2, "u": 6, "g": 3297.42}, {"d": "2026-06-29", "r": 2101.79, "a": 420.36, "o": 15.2, "u": 5, "g": 2534.16}, {"d": "2026-06-30", "r": 2569.43, "a": 367.06, "o": 21.2, "u": 7, "g": 3277.95}, {"d": "2026-07-01", "r": 2638.55, "a": 376.94, "o": 21.2, "u": 7, "g": 3251.91}, {"d": "2026-07-02", "r": 1080.38, "a": 360.13, "o": 9.1, "u": 3, "g": 1509.84}, {"d": "2026-07-03", "r": 4961.47, "a": 496.15, "o": 30.3, "u": 10, "g": 6136.3}, {"d": "2026-07-04", "r": 5216.14, "a": 401.24, "o": 39.4, "u": 13, "g": 6503.3}, {"d": "2026-07-05", "r": 3221.85, "a": 357.98, "o": 27.3, "u": 9, "g": 3970.14}, {"d": "2026-07-06", "r": 2476.2, "a": 412.7, "o": 18.2, "u": 6, "g": 3052.32}, {"d": "2026-07-07", "r": 1929.84, "a": 482.46, "o": 12.1, "u": 4, "g": 2375.98}, {"d": "2026-07-08", "r": 1589.64, "a": 397.41, "o": 12.1, "u": 4, "g": 1929.38}, {"d": "2026-07-09", "r": 1623.22, "a": 405.81, "o": 12.1, "u": 4, "g": 2074.0}, {"d": "2026-07-10", "r": 2950.42, "a": 421.49, "o": 21.2, "u": 7, "g": 3754.1}, {"d": "2026-07-11", "r": 5053.86, "a": 421.16, "o": 36.4, "u": 12, "g": 6313.78}, {"d": "2026-07-12", "r": 3870.02, "a": 430.0, "o": 27.3, "u": 9, "g": 4819.51}, {"d": "2026-07-13", "r": 2571.48, "a": 367.35, "o": 21.2, "u": 7, "g": 3090.12}, {"d": "2026-07-14", "r": 2449.94, "a": 408.32, "o": 18.2, "u": 6, "g": 2879.22}, {"d": "2026-07-15", "r": 2739.62, "a": 391.37, "o": 21.2, "u": 7, "g": 3426.06}, {"d": "2026-07-16", "r": 2721.2, "a": 388.74, "o": 21.2, "u": 7, "g": 3531.3}, {"d": "2026-07-17", "r": 3906.43, "a": 488.3, "o": 24.2, "u": 8, "g": 4593.0}, {"d": "2026-07-18", "r": 5107.18, "a": 425.6, "o": 36.4, "u": 12, "g": 6135.74}, {"d": "2026-07-19", "r": 3817.92, "a": 347.08, "o": 33.3, "u": 11, "g": 4772.39}, {"d": "2026-07-20", "r": 4509.46, "a": 322.1, "o": 42.4, "u": 14, "g": 5605.2}, {"d": "2026-07-21", "r": 4225.06, "a": 301.79, "o": 42.4, "u": 14, "g": 5266.64}, {"d": "2026-07-22", "r": 3603.81, "a": 327.62, "o": 33.3, "u": 11, "g": 4428.05}, {"d": "2026-07-23", "r": 4592.98, "a": 328.07, "o": 42.4, "u": 14, "g": 5841.73}, {"d": "2026-07-24", "r": 4346.76, "a": 334.37, "o": 39.4, "u": 13, "g": 5559.08}, {"d": "2026-07-25", "r": 3483.55, "a": 387.06, "o": 27.3, "u": 9, "g": 4363.75}, {"d": "2026-07-26", "r": 1956.48, "a": 391.3, "o": 15.2, "u": 5, "g": 2518.24}, {"d": "2026-07-27", "r": 1833.62, "a": 305.6, "o": 18.2, "u": 6, "g": 2567.47}, {"d": "2026-07-28", "r": 1514.02, "a": 302.8, "o": 15.2, "u": 5, "g": 2023.27}, {"d": "2026-07-29", "r": 1488.23, "a": 297.65, "o": 15.2, "u": 5, "g": 1956.47}, {"d": "2026-07-30", "r": 2391.5, "a": 398.58, "o": 18.2, "u": 6, "g": 3052.47}, {"d": "2026-07-31", "r": 3968.35, "a": 396.83, "o": 30.3, "u": 10, "g": 5018.92}, {"d": "2026-08-01", "r": 3780.21, "a": 343.66, "o": 33.3, "u": 11, "g": 4694.55}, {"d": "2026-08-02", "r": 3041.51, "a": 337.95, "o": 27.3, "u": 9, "g": 3867.1}, {"d": "2026-08-03", "r": 2152.04, "a": 358.67, "o": 18.2, "u": 6, "g": 2722.54}, {"d": "2026-08-04", "r": 1789.56, "a": 357.91, "o": 15.2, "u": 5, "g": 2339.59}, {"d": "2026-08-05", "r": 2420.14, "a": 403.36, "o": 21.2, "u": 7, "g": 3224.02}, {"d": "2026-08-06", "r": 3468.23, "a": 433.53, "o": 27.3, "u": 9, "g": 4427.14}, {"d": "2026-08-07", "r": 4636.14, "a": 421.47, "o": 33.3, "u": 11, "g": 5615.87}, {"d": "2026-08-08", "r": 3731.9, "a": 414.66, "o": 27.3, "u": 9, "g": 4665.6}, {"d": "2026-08-09", "r": 2677.78, "a": 382.54, "o": 21.2, "u": 7, "g": 3286.15}, {"d": "2026-08-10", "r": 1967.34, "a": 491.83, "o": 12.1, "u": 4, "g": 2348.84}, {"d": "2026-08-11", "r": 2176.6, "a": 435.32, "o": 15.2, "u": 5, "g": 2734.33}, {"d": "2026-08-12", "r": 2176.6, "a": 435.32, "o": 15.2, "u": 5, "g": 2734.33}, {"d": "2026-08-13", "r": 2217.22, "a": 316.75, "o": 21.2, "u": 7, "g": 3056.0}, {"d": "2026-08-14", "r": 2442.67, "a": 348.95, "o": 21.2, "u": 7, "g": 3121.14}, {"d": "2026-08-15", "r": 2618.17, "a": 327.27, "o": 24.2, "u": 8, "g": 3413.99}, {"d": "2026-08-16", "r": 2971.09, "a": 330.12, "o": 27.3, "u": 9, "g": 3718.57}, {"d": "2026-08-17", "r": 3347.08, "a": 371.9, "o": 27.3, "u": 9, "g": 4031.66}, {"d": "2026-08-18", "r": 2143.96, "a": 428.79, "o": 15.2, "u": 5, "g": 2510.83}, {"d": "2026-08-19", "r": 2146.29, "a": 429.26, "o": 15.2, "u": 5, "g": 2486.05}, {"d": "2026-08-20", "r": 2334.71, "a": 389.12, "o": 18.2, "u": 6, "g": 2709.02}, {"d": "2026-08-21", "r": 2888.7, "a": 412.67, "o": 21.2, "u": 7, "g": 3457.2}, {"d": "2026-08-22", "r": 2644.82, "a": 377.83, "o": 21.2, "u": 7, "g": 3167.04}, {"d": "2026-08-23", "r": 2071.75, "a": 414.35, "o": 15.2, "u": 5, "g": 2554.15}, {"d": "2026-08-24", "r": 2288.24, "a": 381.37, "o": 18.2, "u": 6, "g": 2818.26}, {"d": "2026-08-25", "r": 2257.88, "a": 376.31, "o": 18.2, "u": 6, "g": 2851.64}, {"d": "2026-08-26", "r": 1219.54, "a": 304.88, "o": 12.1, "u": 4, "g": 1568.21}, {"d": "2026-08-27", "r": 788.62, "a": 262.87, "o": 9.1, "u": 3, "g": 1017.62}, {"d": "2026-08-28", "r": 1494.02, "a": 373.5, "o": 12.1, "u": 4, "g": 1899.67}, {"d": "2026-08-29", "r": 2222.3, "a": 370.38, "o": 18.2, "u": 6, "g": 2773.53}, {"d": "2026-08-30", "r": 712.8, "a": 356.4, "o": 6.1, "u": 2, "g": 970.53}, {"d": "2026-08-31", "r": 343.8, "a": 343.8, "o": 3.0, "u": 1, "g": 373.47}, {"d": "2026-09-01", "r": 369.0, "a": 369.0, "o": 3.0, "u": 1, "g": 462.24}, {"d": "2026-09-02", "r": 369.0, "a": 369.0, "o": 3.0, "u": 1, "g": 462.24}, {"d": "2026-09-03", "r": 747.4, "a": 373.7, "o": 6.1, "u": 2, "g": 934.33}, {"d": "2026-09-04", "r": 1569.15, "a": 523.05, "o": 9.1, "u": 3, "g": 1825.17}, {"d": "2026-09-05", "r": 3065.63, "a": 437.95, "o": 21.2, "u": 7, "g": 3868.7}, {"d": "2026-09-06", "r": 2517.2, "a": 359.6, "o": 21.2, "u": 7, "g": 3363.95}, {"d": "2026-09-07", "r": 1773.08, "a": 443.27, "o": 12.1, "u": 4, "g": 2178.49}, {"d": "2026-09-08", "r": 1098.0, "a": 549.0, "o": 6.1, "u": 2, "g": 1309.68}, {"d": "2026-09-09", "r": 2415.79, "a": 483.16, "o": 15.2, "u": 5, "g": 2905.21}, {"d": "2026-09-10", "r": 1866.79, "a": 466.7, "o": 12.1, "u": 4, "g": 2250.37}, {"d": "2026-09-11", "r": 1801.63, "a": 450.41, "o": 12.1, "u": 4, "g": 2208.47}, {"d": "2026-09-12", "r": 714.96, "a": 357.48, "o": 6.1, "u": 2, "g": 1056.74}, {"d": "2026-09-13", "r": 549.0, "a": 549.0, "o": 3.0, "u": 1, "g": 654.84}, {"d": "2026-09-14", "r": 2017.41, "a": 504.35, "o": 12.1, "u": 4, "g": 2483.57}, {"d": "2026-09-15", "r": 2029.29, "a": 507.32, "o": 12.1, "u": 4, "g": 2496.28}, {"d": "2026-09-16", "r": 2329.83, "a": 465.97, "o": 15.2, "u": 5, "g": 2797.17}, {"d": "2026-09-17", "r": 2199.68, "a": 439.94, "o": 15.2, "u": 5, "g": 2618.01}, {"d": "2026-09-18", "r": 3143.36, "a": 449.05, "o": 21.2, "u": 7, "g": 3755.88}, {"d": "2026-09-19", "r": 2557.76, "a": 426.29, "o": 18.2, "u": 6, "g": 3061.87}, {"d": "2026-09-20", "r": 2105.8, "a": 526.45, "o": 12.1, "u": 4, "g": 2594.86}, {"d": "2026-09-21", "r": 381.78, "a": 381.78, "o": 3.0, "u": 1, "g": 453.0}, {"d": "2026-09-22", "r": 369.0, "a": 369.0, "o": 3.0, "u": 1, "g": 495.94}, {"d": "2026-09-23", "r": 691.29, "a": 345.64, "o": 6.1, "u": 2, "g": 881.41}, {"d": "2026-09-24", "r": 1151.66, "a": 383.89, "o": 9.1, "u": 3, "g": 1392.65}, {"d": "2026-09-25", "r": 1677.71, "a": 419.43, "o": 12.1, "u": 4, "g": 2008.2}, {"d": "2026-09-26", "r": 2464.18, "a": 410.7, "o": 18.2, "u": 6, "g": 3072.8}, {"d": "2026-09-27", "r": 1379.33, "a": 344.83, "o": 12.1, "u": 4, "g": 1605.71}, {"d": "2026-09-28", "r": 1756.25, "a": 351.25, "o": 15.2, "u": 5, "g": 2103.52}, {"d": "2026-09-29", "r": 1631.61, "a": 407.9, "o": 12.1, "u": 4, "g": 1994.5}, {"d": "2026-09-30", "r": 932.4, "a": 466.2, "o": 6.1, "u": 2, "g": 1111.22}, {"d": "2026-10-01", "r": 956.57, "a": 478.29, "o": 6.1, "u": 2, "g": 1118.28}, {"d": "2026-10-02", "r": 573.17, "a": 573.17, "o": 3.0, "u": 1, "g": 645.04}, {"d": "2026-10-03", "r": 573.17, "a": 573.17, "o": 3.0, "u": 1, "g": 645.04}, {"d": "2026-10-04", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-10-05", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-10-06", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-10-07", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-10-08", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-10-09", "r": 550.5, "a": 550.5, "o": 3.0, "u": 1, "g": 663.0}, {"d": "2026-10-10", "r": 930.88, "a": 465.44, "o": 6.1, "u": 2, "g": 1087.8}, {"d": "2026-10-11", "r": 380.38, "a": 380.38, "o": 3.0, "u": 1, "g": 424.8}, {"d": "2026-10-12", "r": 380.38, "a": 380.38, "o": 3.0, "u": 1, "g": 424.8}, {"d": "2026-10-13", "r": 380.38, "a": 380.38, "o": 3.0, "u": 1, "g": 424.8}, {"d": "2026-10-14", "r": 380.38, "a": 380.38, "o": 3.0, "u": 1, "g": 424.8}, {"d": "2026-10-15", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-10-16", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-10-17", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-10-18", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-10-19", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-10-20", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-10-21", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-10-22", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-10-23", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-10-24", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-10-25", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-10-26", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-10-27", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-10-28", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-10-29", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-10-30", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-10-31", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-11-01", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-11-02", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-11-03", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-11-04", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-11-05", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-11-06", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-11-07", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-11-08", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-11-09", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-11-10", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-11-11", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-11-12", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-11-13", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-11-14", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-11-15", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-11-16", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-11-17", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-11-18", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-11-19", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-11-20", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-11-21", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-11-22", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-11-23", "r": 189.0, "a": 189.0, "o": 3.0, "u": 1, "g": 246.57}, {"d": "2026-11-24", "r": 189.0, "a": 189.0, "o": 3.0, "u": 1, "g": 246.57}, {"d": "2026-11-25", "r": 189.0, "a": 189.0, "o": 3.0, "u": 1, "g": 246.57}, {"d": "2026-11-26", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-11-27", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-11-28", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-11-29", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-11-30", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-12-01", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-12-02", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-12-03", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-12-04", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-12-05", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-12-06", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-12-07", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-12-08", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-12-09", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-12-10", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-12-11", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-12-12", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-12-13", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-12-14", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-12-15", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-12-16", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-12-17", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2026-12-18", "r": 383.67, "a": 383.67, "o": 3.0, "u": 1, "g": 464.97}, {"d": "2026-12-19", "r": 820.26, "a": 410.13, "o": 6.1, "u": 2, "g": 976.87}, {"d": "2026-12-20", "r": 820.26, "a": 410.13, "o": 6.1, "u": 2, "g": 976.87}, {"d": "2026-12-21", "r": 820.26, "a": 410.13, "o": 6.1, "u": 2, "g": 976.87}, {"d": "2026-12-22", "r": 861.03, "a": 430.51, "o": 6.1, "u": 2, "g": 1011.81}, {"d": "2026-12-23", "r": 424.44, "a": 424.44, "o": 3.0, "u": 1, "g": 499.91}, {"d": "2026-12-24", "r": 800.44, "a": 400.22, "o": 6.1, "u": 2, "g": 969.64}, {"d": "2026-12-25", "r": 800.44, "a": 400.22, "o": 6.1, "u": 2, "g": 969.64}, {"d": "2026-12-26", "r": 1921.26, "a": 480.32, "o": 12.1, "u": 4, "g": 2155.7}, {"d": "2026-12-27", "r": 3061.82, "a": 765.46, "o": 12.1, "u": 4, "g": 2501.15}, {"d": "2026-12-28", "r": 3061.82, "a": 765.46, "o": 12.1, "u": 4, "g": 2501.15}, {"d": "2026-12-29", "r": 3504.24, "a": 700.85, "o": 15.2, "u": 5, "g": 2598.69}, {"d": "2026-12-30", "r": 4616.52, "a": 659.5, "o": 21.2, "u": 7, "g": 2717.37}, {"d": "2026-12-31", "r": 4798.52, "a": 599.81, "o": 24.2, "u": 8, "g": 2991.34}], "d25": [{"d": "2025-01-01", "r": 206.2, "a": 103.1, "o": 10.0, "u": 2, "g": 249.53}, {"d": "2025-01-02", "r": 420.84, "a": 105.21, "o": 20.0, "u": 4, "g": 602.07}, {"d": "2025-01-03", "r": 461.66, "a": 92.33, "o": 25.0, "u": 5, "g": 730.35}, {"d": "2025-01-04", "r": 487.08, "a": 97.42, "o": 25.0, "u": 5, "g": 744.78}, {"d": "2025-01-05", "r": 261.32, "a": 87.11, "o": 15.0, "u": 3, "g": 358.82}, {"d": "2025-01-06", "r": 129.5, "a": 129.5, "o": 5.0, "u": 1, "g": 140.33}, {"d": "2025-01-07", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2025-01-08", "r": 74.63, "a": 74.63, "o": 5.0, "u": 1, "g": 89.58}, {"d": "2025-01-09", "r": 209.11, "a": 69.7, "o": 15.0, "u": 3, "g": 321.56}, {"d": "2025-01-10", "r": 141.87, "a": 70.93, "o": 10.0, "u": 2, "g": 189.32}, {"d": "2025-01-11", "r": 403.15, "a": 80.63, "o": 25.0, "u": 5, "g": 659.48}, {"d": "2025-01-12", "r": 211.15, "a": 70.38, "o": 15.0, "u": 3, "g": 325.32}, {"d": "2025-01-13", "r": 145.15, "a": 72.57, "o": 10.0, "u": 2, "g": 181.77}, {"d": "2025-01-14", "r": 74.63, "a": 74.63, "o": 5.0, "u": 1, "g": 89.58}, {"d": "2025-01-15", "r": 145.15, "a": 72.57, "o": 10.0, "u": 2, "g": 181.77}, {"d": "2025-01-16", "r": 145.15, "a": 72.57, "o": 10.0, "u": 2, "g": 181.77}, {"d": "2025-01-17", "r": 209.29, "a": 69.76, "o": 15.0, "u": 3, "g": 253.73}, {"d": "2025-01-18", "r": 657.26, "a": 109.54, "o": 30.0, "u": 6, "g": 995.35}, {"d": "2025-01-19", "r": 228.77, "a": 76.26, "o": 15.0, "u": 3, "g": 332.04}, {"d": "2025-01-20", "r": 138.77, "a": 69.39, "o": 10.0, "u": 2, "g": 161.54}, {"d": "2025-01-21", "r": 138.77, "a": 69.39, "o": 10.0, "u": 2, "g": 161.54}, {"d": "2025-01-22", "r": 64.14, "a": 64.14, "o": 5.0, "u": 1, "g": 71.96}, {"d": "2025-01-23", "r": 131.38, "a": 65.69, "o": 10.0, "u": 2, "g": 171.7}, {"d": "2025-01-24", "r": 229.81, "a": 76.6, "o": 15.0, "u": 3, "g": 349.0}, {"d": "2025-01-25", "r": 435.67, "a": 87.13, "o": 25.0, "u": 5, "g": 717.36}, {"d": "2025-01-26", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2025-01-27", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2025-01-28", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2025-01-29", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2025-01-30", "r": 160.11, "a": 80.06, "o": 10.0, "u": 2, "g": 223.72}, {"d": "2025-01-31", "r": 439.03, "a": 87.81, "o": 25.0, "u": 5, "g": 642.2}, {"d": "2025-02-01", "r": 458.11, "a": 91.62, "o": 25.0, "u": 5, "g": 661.28}, {"d": "2025-02-02", "r": 191.24, "a": 95.62, "o": 10.0, "u": 2, "g": 396.1}, {"d": "2025-02-03", "r": 124.0, "a": 124.0, "o": 5.0, "u": 1, "g": 263.86}, {"d": "2025-02-04", "r": 79.0, "a": 79.0, "o": 5.0, "u": 1, "g": 158.4}, {"d": "2025-02-05", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2025-02-06", "r": 66.67, "a": 66.67, "o": 5.0, "u": 1, "g": 97.93}, {"d": "2025-02-07", "r": 274.67, "a": 91.56, "o": 15.0, "u": 3, "g": 368.48}, {"d": "2025-02-08", "r": 607.67, "a": 101.28, "o": 30.0, "u": 6, "g": 902.08}, {"d": "2025-02-09", "r": 82.0, "a": 82.0, "o": 5.0, "u": 1, "g": 114.5}, {"d": "2025-02-10", "r": 0.0, "a": 0.0, "o": 0.0, "u": 0, "g": 0.0}, {"d": "2025-02-11", "r": 180.0, "a": 180.0, "o": 5.0, "u": 1, "g": 169.83}, {"d": "2025-02-12", "r": 180.0, "a": 180.0, "o": 5.0, "u": 1, "g": 169.83}, {"d": "2025-02-13", "r": 180.0, "a": 180.0, "o": 5.0, "u": 1, "g": 169.83}, {"d": "2025-02-14", "r": 696.67, "a": 139.33, "o": 25.0, "u": 5, "g": 904.06}, {"d": "2025-02-15", "r": 696.67, "a": 139.33, "o": 25.0, "u": 5, "g": 904.06}, {"d": "2025-02-16", "r": 423.92, "a": 105.98, "o": 20.0, "u": 4, "g": 594.68}, {"d": "2025-02-17", "r": 436.29, "a": 109.07, "o": 20.0, "u": 4, "g": 594.87}, {"d": "2025-02-18", "r": 214.25, "a": 107.13, "o": 10.0, "u": 2, "g": 250.98}, {"d": "2025-02-19", "r": 443.25, "a": 110.81, "o": 20.0, "u": 4, "g": 586.17}, {"d": "2025-02-20", "r": 443.25, "a": 110.81, "o": 20.0, "u": 4, "g": 604.89}, {"d": "2025-02-21", "r": 558.24, "a": 111.65, "o": 25.0, "u": 5, "g": 756.84}, {"d": "2025-02-22", "r": 567.48, "a": 113.5, "o": 25.0, "u": 5, "g": 766.08}, {"d": "2025-02-23", "r": 81.45, "a": 81.45, "o": 5.0, "u": 1, "g": 88.68}, {"d": "2025-02-24", "r": 81.45, "a": 81.45, "o": 5.0, "u": 1, "g": 88.68}, {"d": "2025-02-25", "r": 155.93, "a": 77.97, "o": 10.0, "u": 2, "g": 204.68}, {"d": "2025-02-26", "r": 244.93, "a": 81.64, "o": 15.0, "u": 3, "g": 358.18}, {"d": "2025-02-27", "r": 262.67, "a": 87.56, "o": 15.0, "u": 3, "g": 350.99}, {"d": "2025-02-28", "r": 470.47, "a": 94.09, "o": 25.0, "u": 5, "g": 676.7}, {"d": "2025-03-01", "r": 783.15, "a": 97.89, "o": 40.0, "u": 8, "g": 1218.01}, {"d": "2025-03-02", "r": 346.29, "a": 86.57, "o": 20.0, "u": 4, "g": 467.8}, {"d": "2025-03-03", "r": 218.93, "a": 72.98, "o": 15.0, "u": 3, "g": 275.25}, {"d": "2025-03-04", "r": 153.99, "a": 77.0, "o": 10.0, "u": 2, "g": 177.81}, {"d": "2025-03-05", "r": 153.99, "a": 77.0, "o": 10.0, "u": 2, "g": 177.81}, {"d": "2025-03-06", "r": 186.14, "a": 93.07, "o": 10.0, "u": 2, "g": 234.89}, {"d": "2025-03-07", "r": 199.06, "a": 99.53, "o": 10.0, "u": 2, "g": 293.47}, {"d": "2025-03-08", "r": 817.57, "a": 136.26, "o": 30.0, "u": 6, "g": 1178.68}, {"d": "2025-03-09", "r": 97.57, "a": 97.57, "o": 5.0, "u": 1, "g": 120.75}, {"d": "2025-03-10", "r": 400.07, "a": 100.02, "o": 20.0, "u": 4, "g": 620.98}, {"d": "2025-03-11", "r": 770.4, "a": 128.4, "o": 30.0, "u": 6, "g": 982.82}, {"d": "2025-03-12", "r": 770.4, "a": 128.4, "o": 30.0, "u": 6, "g": 982.82}, {"d": "2025-03-13", "r": 496.4, "a": 124.1, "o": 20.0, "u": 4, "g": 634.71}, {"d": "2025-03-14", "r": 764.06, "a": 127.34, "o": 30.0, "u": 6, "g": 1013.28}, {"d": "2025-03-15", "r": 748.61, "a": 124.77, "o": 30.0, "u": 6, "g": 1032.17}, {"d": "2025-03-16", "r": 491.22, "a": 122.81, "o": 20.0, "u": 4, "g": 655.41}, {"d": "2025-03-17", "r": 220.6, "a": 110.3, "o": 10.0, "u": 2, "g": 279.47}, {"d": "2025-03-18", "r": 220.6, "a": 110.3, "o": 10.0, "u": 2, "g": 279.47}, {"d": "2025-03-19", "r": 348.1, "a": 116.03, "o": 15.0, "u": 3, "g": 522.54}, {"d": "2025-03-20", "r": 220.6, "a": 110.3, "o": 10.0, "u": 2, "g": 279.47}, {"d": "2025-03-21", "r": 418.33, "a": 104.58, "o": 20.0, "u": 4, "g": 671.38}, {"d": "2025-03-22", "r": 673.13, "a": 134.63, "o": 25.0, "u": 5, "g": 978.45}, {"d": "2025-03-23", "r": 474.15, "a": 118.54, "o": 20.0, "u": 4, "g": 670.47}, {"d": "2025-03-24", "r": 608.74, "a": 101.46, "o": 30.0, "u": 6, "g": 885.83}, {"d": "2025-03-25", "r": 463.82, "a": 92.76, "o": 25.0, "u": 5, "g": 635.94}, {"d": "2025-03-26", "r": 404.57, "a": 101.14, "o": 20.0, "u": 4, "g": 529.49}, {"d": "2025-03-27", "r": 201.9, "a": 100.95, "o": 10.0, "u": 2, "g": 263.46}, {"d": "2025-03-28", "r": 201.9, "a": 100.95, "o": 10.0, "u": 2, "g": 263.46}, {"d": "2025-03-29", "r": 625.44, "a": 125.09, "o": 25.0, "u": 5, "g": 986.43}, {"d": "2025-03-30", "r": 214.58, "a": 107.29, "o": 10.0, "u": 2, "g": 292.84}, {"d": "2025-03-31", "r": 64.58, "a": 64.58, "o": 5.0, "u": 1, "g": 122.47}, {"d": "2025-04-01", "r": 160.25, "a": 80.12, "o": 10.0, "u": 2, "g": 251.36}, {"d": "2025-04-02", "r": 95.67, "a": 95.67, "o": 5.0, "u": 1, "g": 128.88}, {"d": "2025-04-03", "r": 819.09, "a": 136.52, "o": 30.0, "u": 6, "g": 1081.91}, {"d": "2025-04-04", "r": 819.09, "a": 136.52, "o": 30.0, "u": 6, "g": 1081.91}, {"d": "2025-04-05", "r": 809.09, "a": 134.85, "o": 30.0, "u": 6, "g": 1070.61}, {"d": "2025-04-06", "r": 554.4, "a": 110.88, "o": 25.0, "u": 5, "g": 824.45}, {"d": "2025-04-07", "r": 533.31, "a": 106.66, "o": 25.0, "u": 5, "g": 765.17}, {"d": "2025-04-08", "r": 247.58, "a": 82.53, "o": 15.0, "u": 3, "g": 354.61}, {"d": "2025-04-09", "r": 287.5, "a": 143.75, "o": 10.0, "u": 2, "g": 369.46}, {"d": "2025-04-10", "r": 287.5, "a": 143.75, "o": 10.0, "u": 2, "g": 369.46}, {"d": "2025-04-11", "r": 566.33, "a": 141.58, "o": 20.0, "u": 4, "g": 762.33}, {"d": "2025-04-12", "r": 1116.83, "a": 139.6, "o": 40.0, "u": 8, "g": 1583.46}, {"d": "2025-04-13", "r": 349.83, "a": 116.61, "o": 15.0, "u": 3, "g": 493.99}, {"d": "2025-04-14", "r": 571.91, "a": 95.32, "o": 30.0, "u": 6, "g": 917.22}, {"d": "2025-04-15", "r": 502.04, "a": 100.41, "o": 25.0, "u": 5, "g": 707.27}, {"d": "2025-04-16", "r": 738.35, "a": 123.06, "o": 30.0, "u": 6, "g": 979.2}, {"d": "2025-04-17", "r": 766.71, "a": 127.78, "o": 30.0, "u": 6, "g": 990.59}, {"d": "2025-04-18", "r": 1129.32, "a": 125.48, "o": 45.0, "u": 9, "g": 1545.39}, {"d": "2025-04-19", "r": 1147.47, "a": 143.43, "o": 40.0, "u": 8, "g": 1530.34}, {"d": "2025-04-20", "r": 516.48, "a": 103.3, "o": 25.0, "u": 5, "g": 749.48}, {"d": "2025-04-21", "r": 399.64, "a": 99.91, "o": 20.0, "u": 4, "g": 546.92}, {"d": "2025-04-22", "r": 460.98, "a": 92.2, "o": 25.0, "u": 5, "g": 638.68}, {"d": "2025-04-23", "r": 610.06, "a": 101.68, "o": 30.0, "u": 6, "g": 818.14}, {"d": "2025-04-24", "r": 610.06, "a": 101.68, "o": 30.0, "u": 6, "g": 818.14}, {"d": "2025-04-25", "r": 545.9, "a": 109.18, "o": 25.0, "u": 5, "g": 931.16}, {"d": "2025-04-26", "r": 1193.11, "a": 170.44, "o": 35.0, "u": 7, "g": 1458.77}, {"d": "2025-04-27", "r": 344.86, "a": 114.95, "o": 15.0, "u": 3, "g": 525.69}, {"d": "2025-04-28", "r": 271.98, "a": 90.66, "o": 15.0, "u": 3, "g": 442.43}, {"d": "2025-04-29", "r": 272.85, "a": 90.95, "o": 15.0, "u": 3, "g": 515.68}, {"d": "2025-04-30", "r": 404.33, "a": 134.78, "o": 15.0, "u": 3, "g": 594.96}, {"d": "2025-05-01", "r": 717.67, "a": 143.53, "o": 25.0, "u": 5, "g": 1006.48}, {"d": "2025-05-02", "r": 622.27, "a": 103.71, "o": 30.0, "u": 6, "g": 930.2}, {"d": "2025-05-03", "r": 883.29, "a": 126.18, "o": 35.0, "u": 7, "g": 1312.94}, {"d": "2025-05-04", "r": 685.27, "a": 137.06, "o": 25.0, "u": 5, "g": 940.39}, {"d": "2025-05-05", "r": 510.92, "a": 127.73, "o": 20.0, "u": 4, "g": 738.43}, {"d": "2025-05-06", "r": 428.92, "a": 107.23, "o": 20.0, "u": 4, "g": 653.63}, {"d": "2025-05-07", "r": 365.79, "a": 91.45, "o": 20.0, "u": 4, "g": 568.83}, {"d": "2025-05-08", "r": 589.83, "a": 147.46, "o": 20.0, "u": 4, "g": 793.49}, {"d": "2025-05-09", "r": 848.52, "a": 141.42, "o": 30.0, "u": 6, "g": 1102.29}, {"d": "2025-05-10", "r": 1159.18, "a": 165.6, "o": 35.0, "u": 7, "g": 1564.62}, {"d": "2025-05-11", "r": 112.67, "a": 112.67, "o": 5.0, "u": 1, "g": 152.9}, {"d": "2025-05-12", "r": 599.34, "a": 99.89, "o": 30.0, "u": 6, "g": 980.27}, {"d": "2025-05-13", "r": 486.84, "a": 97.37, "o": 25.0, "u": 5, "g": 704.15}, {"d": "2025-05-14", "r": 166.06, "a": 83.03, "o": 10.0, "u": 2, "g": 249.52}, {"d": "2025-05-15", "r": 598.89, "a": 149.72, "o": 20.0, "u": 4, "g": 764.9}, {"d": "2025-05-16", "r": 1666.54, "a": 208.32, "o": 40.0, "u": 8, "g": 2330.05}, {"d": "2025-05-17", "r": 1794.74, "a": 224.34, "o": 40.0, "u": 8, "g": 2421.72}, {"d": "2025-05-18", "r": 923.44, "a": 153.91, "o": 30.0, "u": 6, "g": 1419.63}, {"d": "2025-05-19", "r": 481.1, "a": 96.22, "o": 25.0, "u": 5, "g": 799.65}, {"d": "2025-05-20", "r": 383.1, "a": 95.77, "o": 20.0, "u": 4, "g": 582.95}, {"d": "2025-05-21", "r": 91.28, "a": 91.28, "o": 5.0, "u": 1, "g": 142.65}, {"d": "2025-05-22", "r": 91.28, "a": 91.28, "o": 5.0, "u": 1, "g": 142.65}, {"d": "2025-05-23", "r": 793.21, "a": 158.64, "o": 30.0, "u": 6, "g": 993.75}, {"d": "2025-05-24", "r": 1143.21, "a": 190.53, "o": 35.0, "u": 7, "g": 1433.77}, {"d": "2025-05-25", "r": 738.66, "a": 123.11, "o": 30.0, "u": 6, "g": 1053.59}, {"d": "2025-05-26", "r": 564.01, "a": 112.8, "o": 25.0, "u": 5, "g": 790.9}, {"d": "2025-05-27", "r": 690.51, "a": 115.08, "o": 30.0, "u": 6, "g": 1094.9}, {"d": "2025-05-28", "r": 321.5, "a": 160.75, "o": 10.0, "u": 2, "g": 555.32}, {"d": "2025-05-29", "r": 615.11, "a": 153.78, "o": 20.0, "u": 4, "g": 957.91}, {"d": "2025-05-30", "r": 1304.65, "a": 186.38, "o": 35.0, "u": 7, "g": 1750.23}, {"d": "2025-05-31", "r": 1514.71, "a": 189.34, "o": 40.0, "u": 8, "g": 2001.64}, {"d": "2025-06-01", "r": 657.38, "a": 164.34, "o": 20.0, "u": 4, "g": 813.47}, {"d": "2025-06-02", "r": 736.56, "a": 122.76, "o": 30.0, "u": 6, "g": 1043.98}, {"d": "2025-06-03", "r": 894.12, "a": 127.73, "o": 35.0, "u": 7, "g": 1169.47}, {"d": "2025-06-04", "r": 419.16, "a": 104.79, "o": 20.0, "u": 4, "g": 547.53}, {"d": "2025-06-05", "r": 469.66, "a": 117.42, "o": 20.0, "u": 4, "g": 819.58}, {"d": "2025-06-06", "r": 1022.19, "a": 170.36, "o": 30.0, "u": 6, "g": 1338.56}, {"d": "2025-06-07", "r": 1338.11, "a": 191.16, "o": 35.0, "u": 7, "g": 1654.4}, {"d": "2025-06-08", "r": 1121.97, "a": 160.28, "o": 35.0, "u": 7, "g": 1541.5}, {"d": "2025-06-09", "r": 772.82, "a": 154.56, "o": 25.0, "u": 5, "g": 1015.85}, {"d": "2025-06-10", "r": 766.37, "a": 127.73, "o": 30.0, "u": 6, "g": 1091.13}, {"d": "2025-06-11", "r": 692.29, "a": 138.46, "o": 25.0, "u": 5, "g": 1003.5}, {"d": "2025-06-12", "r": 837.42, "a": 167.48, "o": 25.0, "u": 5, "g": 1144.8}, {"d": "2025-06-13", "r": 1052.58, "a": 175.43, "o": 30.0, "u": 6, "g": 1372.46}, {"d": "2025-06-14", "r": 1271.3, "a": 181.61, "o": 35.0, "u": 7, "g": 1766.31}, {"d": "2025-06-15", "r": 752.4, "a": 150.48, "o": 25.0, "u": 5, "g": 1011.46}, {"d": "2025-06-16", "r": 885.28, "a": 147.55, "o": 30.0, "u": 6, "g": 1243.34}, {"d": "2025-06-17", "r": 670.91, "a": 134.18, "o": 25.0, "u": 5, "g": 990.21}, {"d": "2025-06-18", "r": 771.23, "a": 154.25, "o": 25.0, "u": 5, "g": 1053.44}, {"d": "2025-06-19", "r": 1367.47, "a": 195.35, "o": 35.0, "u": 7, "g": 1664.23}, {"d": "2025-06-20", "r": 1616.17, "a": 202.02, "o": 40.0, "u": 8, "g": 2008.39}, {"d": "2025-06-21", "r": 1525.48, "a": 190.69, "o": 40.0, "u": 8, "g": 1869.62}, {"d": "2025-06-22", "r": 918.85, "a": 153.14, "o": 30.0, "u": 6, "g": 1149.83}, {"d": "2025-06-23", "r": 724.35, "a": 144.87, "o": 25.0, "u": 5, "g": 910.71}, {"d": "2025-06-24", "r": 797.79, "a": 132.97, "o": 30.0, "u": 6, "g": 1015.9}, {"d": "2025-06-25", "r": 809.57, "a": 134.93, "o": 30.0, "u": 6, "g": 1053.15}, {"d": "2025-06-26", "r": 693.11, "a": 138.62, "o": 25.0, "u": 5, "g": 1027.11}, {"d": "2025-06-27", "r": 1683.33, "a": 210.42, "o": 40.0, "u": 8, "g": 2033.85}, {"d": "2025-06-28", "r": 1748.56, "a": 218.57, "o": 40.0, "u": 8, "g": 2159.09}, {"d": "2025-06-29", "r": 1873.18, "a": 208.13, "o": 45.0, "u": 9, "g": 2517.53}, {"d": "2025-06-30", "r": 1556.97, "a": 194.62, "o": 40.0, "u": 8, "g": 2067.93}, {"d": "2025-07-01", "r": 1123.67, "a": 187.28, "o": 30.0, "u": 6, "g": 1508.12}, {"d": "2025-07-02", "r": 1199.13, "a": 199.86, "o": 30.0, "u": 6, "g": 1433.9}, {"d": "2025-07-03", "r": 1199.13, "a": 199.86, "o": 30.0, "u": 6, "g": 1433.9}, {"d": "2025-07-04", "r": 1730.69, "a": 247.24, "o": 35.0, "u": 7, "g": 2069.34}, {"d": "2025-07-05", "r": 1508.43, "a": 215.49, "o": 35.0, "u": 7, "g": 1986.56}, {"d": "2025-07-06", "r": 1481.97, "a": 211.71, "o": 35.0, "u": 7, "g": 1804.43}, {"d": "2025-07-07", "r": 1243.53, "a": 177.65, "o": 35.0, "u": 7, "g": 1521.43}, {"d": "2025-07-08", "r": 1063.3, "a": 177.22, "o": 35.0, "u": 7, "g": 1315.45}, {"d": "2025-07-09", "r": 1213.78, "a": 202.3, "o": 35.0, "u": 7, "g": 1451.24}, {"d": "2025-07-10", "r": 1179.04, "a": 235.81, "o": 30.0, "u": 6, "g": 1348.76}, {"d": "2025-07-11", "r": 1626.7, "a": 203.34, "o": 40.0, "u": 8, "g": 1899.8}, {"d": "2025-07-12", "r": 1555.51, "a": 194.44, "o": 40.0, "u": 8, "g": 1824.27}, {"d": "2025-07-13", "r": 1802.0, "a": 200.22, "o": 45.0, "u": 9, "g": 2096.47}, {"d": "2025-07-14", "r": 1550.31, "a": 193.79, "o": 40.0, "u": 8, "g": 1959.9}, {"d": "2025-07-15", "r": 1776.58, "a": 197.4, "o": 45.0, "u": 9, "g": 2129.01}, {"d": "2025-07-16", "r": 1119.65, "a": 159.95, "o": 35.0, "u": 7, "g": 1486.52}, {"d": "2025-07-17", "r": 1191.15, "a": 170.16, "o": 35.0, "u": 7, "g": 1493.07}, {"d": "2025-07-18", "r": 1389.44, "a": 198.49, "o": 35.0, "u": 7, "g": 1673.01}, {"d": "2025-07-19", "r": 2034.17, "a": 226.02, "o": 45.0, "u": 9, "g": 2788.13}, {"d": "2025-07-20", "r": 1373.4, "a": 196.2, "o": 35.0, "u": 7, "g": 1757.84}, {"d": "2025-07-21", "r": 1561.41, "a": 195.18, "o": 40.0, "u": 8, "g": 1863.13}, {"d": "2025-07-22", "r": 1082.41, "a": 180.4, "o": 30.0, "u": 6, "g": 1300.57}, {"d": "2025-07-23", "r": 1377.86, "a": 196.84, "o": 40.0, "u": 8, "g": 1657.53}, {"d": "2025-07-24", "r": 1184.91, "a": 197.49, "o": 35.0, "u": 7, "g": 1417.9}, {"d": "2025-07-25", "r": 1956.18, "a": 217.35, "o": 45.0, "u": 9, "g": 2556.93}, {"d": "2025-07-26", "r": 2054.39, "a": 205.44, "o": 50.0, "u": 10, "g": 2818.28}, {"d": "2025-07-27", "r": 1719.55, "a": 191.06, "o": 45.0, "u": 9, "g": 2342.7}, {"d": "2025-07-28", "r": 1300.12, "a": 185.73, "o": 35.0, "u": 7, "g": 1653.71}, {"d": "2025-07-29", "r": 1528.8, "a": 191.1, "o": 40.0, "u": 8, "g": 2046.84}, {"d": "2025-07-30", "r": 1239.04, "a": 177.01, "o": 40.0, "u": 8, "g": 1701.69}, {"d": "2025-07-31", "r": 742.64, "a": 148.53, "o": 25.0, "u": 5, "g": 1036.81}, {"d": "2025-08-01", "r": 1400.79, "a": 200.11, "o": 35.0, "u": 7, "g": 1898.66}, {"d": "2025-08-02", "r": 1539.29, "a": 219.9, "o": 35.0, "u": 7, "g": 1935.73}, {"d": "2025-08-03", "r": 1605.74, "a": 229.39, "o": 35.0, "u": 7, "g": 2077.21}, {"d": "2025-08-04", "r": 1691.0, "a": 211.38, "o": 40.0, "u": 8, "g": 2084.9}, {"d": "2025-08-05", "r": 1555.93, "a": 194.49, "o": 40.0, "u": 8, "g": 2011.84}, {"d": "2025-08-06", "r": 1585.65, "a": 198.21, "o": 40.0, "u": 8, "g": 2114.68}, {"d": "2025-08-07", "r": 1500.98, "a": 187.62, "o": 40.0, "u": 8, "g": 2107.15}, {"d": "2025-08-08", "r": 1638.75, "a": 204.84, "o": 40.0, "u": 8, "g": 2183.91}, {"d": "2025-08-09", "r": 1662.62, "a": 207.83, "o": 40.0, "u": 8, "g": 2502.47}, {"d": "2025-08-10", "r": 1382.8, "a": 197.54, "o": 35.0, "u": 7, "g": 2180.36}, {"d": "2025-08-11", "r": 1610.41, "a": 201.3, "o": 40.0, "u": 8, "g": 2253.14}, {"d": "2025-08-12", "r": 1493.41, "a": 186.68, "o": 40.0, "u": 8, "g": 1987.81}, {"d": "2025-08-13", "r": 1296.53, "a": 185.22, "o": 40.0, "u": 8, "g": 1687.75}, {"d": "2025-08-14", "r": 1491.35, "a": 186.42, "o": 40.0, "u": 8, "g": 2004.6}, {"d": "2025-08-15", "r": 1938.96, "a": 215.44, "o": 45.0, "u": 9, "g": 2580.44}, {"d": "2025-08-16", "r": 1925.34, "a": 213.93, "o": 45.0, "u": 9, "g": 2567.68}, {"d": "2025-08-17", "r": 1063.09, "a": 177.18, "o": 35.0, "u": 7, "g": 1356.67}, {"d": "2025-08-18", "r": 1246.18, "a": 178.03, "o": 40.0, "u": 8, "g": 1663.16}, {"d": "2025-08-19", "r": 1141.36, "a": 163.05, "o": 35.0, "u": 7, "g": 1603.09}, {"d": "2025-08-20", "r": 1336.58, "a": 167.07, "o": 40.0, "u": 8, "g": 1822.04}, {"d": "2025-08-21", "r": 1414.99, "a": 176.87, "o": 40.0, "u": 8, "g": 2012.74}, {"d": "2025-08-22", "r": 1280.19, "a": 182.88, "o": 35.0, "u": 7, "g": 1677.99}, {"d": "2025-08-23", "r": 1515.62, "a": 216.52, "o": 35.0, "u": 7, "g": 2012.15}, {"d": "2025-08-24", "r": 679.67, "a": 135.93, "o": 30.0, "u": 6, "g": 1049.77}, {"d": "2025-08-25", "r": 753.67, "a": 150.73, "o": 35.0, "u": 7, "g": 1042.97}, {"d": "2025-08-26", "r": 1137.58, "a": 162.51, "o": 40.0, "u": 8, "g": 1734.22}, {"d": "2025-08-27", "r": 909.03, "a": 151.51, "o": 30.0, "u": 6, "g": 1208.41}, {"d": "2025-08-28", "r": 967.02, "a": 161.17, "o": 30.0, "u": 6, "g": 1294.45}, {"d": "2025-08-29", "r": 1249.26, "a": 178.47, "o": 35.0, "u": 7, "g": 1685.63}, {"d": "2025-08-30", "r": 1208.63, "a": 172.66, "o": 40.0, "u": 8, "g": 1690.07}, {"d": "2025-08-31", "r": 1265.73, "a": 180.82, "o": 40.0, "u": 8, "g": 1945.49}, {"d": "2025-09-01", "r": 914.11, "a": 130.59, "o": 35.0, "u": 7, "g": 1306.52}, {"d": "2025-09-02", "r": 582.41, "a": 116.48, "o": 25.0, "u": 5, "g": 795.75}, {"d": "2025-09-03", "r": 601.41, "a": 120.28, "o": 25.0, "u": 5, "g": 816.65}, {"d": "2025-09-04", "r": 485.76, "a": 121.44, "o": 20.0, "u": 4, "g": 661.5}, {"d": "2025-09-05", "r": 717.35, "a": 143.47, "o": 25.0, "u": 5, "g": 1007.22}, {"d": "2025-09-06", "r": 1721.9, "a": 215.24, "o": 40.0, "u": 8, "g": 2516.86}, {"d": "2025-09-07", "r": 551.39, "a": 137.85, "o": 20.0, "u": 4, "g": 728.84}, {"d": "2025-09-08", "r": 256.09, "a": 128.04, "o": 10.0, "u": 2, "g": 335.28}, {"d": "2025-09-09", "r": 422.69, "a": 140.9, "o": 15.0, "u": 3, "g": 635.87}, {"d": "2025-09-10", "r": 819.4, "a": 163.88, "o": 30.0, "u": 6, "g": 1155.72}, {"d": "2025-09-11", "r": 920.1, "a": 153.35, "o": 35.0, "u": 7, "g": 1340.67}, {"d": "2025-09-12", "r": 868.7, "a": 144.78, "o": 30.0, "u": 6, "g": 1158.89}, {"d": "2025-09-13", "r": 1465.8, "a": 183.22, "o": 40.0, "u": 8, "g": 2093.82}, {"d": "2025-09-14", "r": 808.41, "a": 134.74, "o": 30.0, "u": 6, "g": 1077.38}, {"d": "2025-09-15", "r": 663.26, "a": 110.54, "o": 30.0, "u": 6, "g": 904.67}, {"d": "2025-09-16", "r": 724.24, "a": 120.71, "o": 30.0, "u": 6, "g": 1008.58}, {"d": "2025-09-17", "r": 397.79, "a": 132.6, "o": 15.0, "u": 3, "g": 546.87}, {"d": "2025-09-18", "r": 714.89, "a": 178.72, "o": 20.0, "u": 4, "g": 875.82}, {"d": "2025-09-19", "r": 933.94, "a": 155.66, "o": 30.0, "u": 6, "g": 1410.75}, {"d": "2025-09-20", "r": 1077.04, "a": 179.51, "o": 35.0, "u": 7, "g": 1521.02}, {"d": "2025-09-21", "r": 298.45, "a": 149.22, "o": 15.0, "u": 3, "g": 526.09}, {"d": "2025-09-22", "r": 422.28, "a": 140.76, "o": 15.0, "u": 3, "g": 633.42}, {"d": "2025-09-23", "r": 223.28, "a": 111.64, "o": 10.0, "u": 2, "g": 318.71}, {"d": "2025-09-24", "r": 123.83, "a": 123.83, "o": 5.0, "u": 1, "g": 156.83}, {"d": "2025-09-25", "r": 120.55, "a": 120.55, "o": 5.0, "u": 1, "g": 185.72}, {"d": "2025-09-26", "r": 1276.0, "a": 141.78, "o": 45.0, "u": 9, "g": 2218.32}, {"d": "2025-09-27", "r": 1319.64, "a": 164.96, "o": 40.0, "u": 8, "g": 1914.85}, {"d": "2025-09-28", "r": 733.94, "a": 146.79, "o": 25.0, "u": 5, "g": 1021.78}, {"d": "2025-09-29", "r": 562.5, "a": 140.62, "o": 20.0, "u": 4, "g": 762.13}, {"d": "2025-09-30", "r": 358.72, "a": 119.57, "o": 15.0, "u": 3, "g": 551.86}, {"d": "2025-10-01", "r": 295.05, "a": 98.35, "o": 15.0, "u": 3, "g": 417.62}, {"d": "2025-10-02", "r": 593.73, "a": 98.95, "o": 30.0, "u": 6, "g": 871.85}, {"d": "2025-10-03", "r": 988.12, "a": 123.51, "o": 40.0, "u": 8, "g": 1523.77}, {"d": "2025-10-04", "r": 1022.39, "a": 127.8, "o": 40.0, "u": 8, "g": 1670.57}, {"d": "2025-10-05", "r": 374.53, "a": 124.84, "o": 15.0, "u": 3, "g": 471.2}, {"d": "2025-10-06", "r": 494.08, "a": 123.52, "o": 20.0, "u": 4, "g": 630.25}, {"d": "2025-10-07", "r": 393.83, "a": 131.28, "o": 15.0, "u": 3, "g": 483.97}, {"d": "2025-10-08", "r": 447.98, "a": 111.99, "o": 20.0, "u": 4, "g": 661.97}, {"d": "2025-10-09", "r": 483.37, "a": 120.84, "o": 20.0, "u": 4, "g": 645.67}, {"d": "2025-10-10", "r": 1490.32, "a": 165.59, "o": 45.0, "u": 9, "g": 1972.6}, {"d": "2025-10-11", "r": 1617.63, "a": 161.76, "o": 50.0, "u": 10, "g": 2165.96}, {"d": "2025-10-12", "r": 1304.98, "a": 145.0, "o": 45.0, "u": 9, "g": 1785.02}, {"d": "2025-10-13", "r": 1061.87, "a": 151.7, "o": 35.0, "u": 7, "g": 1351.57}, {"d": "2025-10-14", "r": 357.87, "a": 119.29, "o": 20.0, "u": 4, "g": 473.98}, {"d": "2025-10-15", "r": 627.84, "a": 125.57, "o": 30.0, "u": 6, "g": 963.01}, {"d": "2025-10-16", "r": 490.04, "a": 122.51, "o": 25.0, "u": 5, "g": 736.29}, {"d": "2025-10-17", "r": 453.02, "a": 113.25, "o": 30.0, "u": 6, "g": 643.07}, {"d": "2025-10-18", "r": 852.02, "a": 170.4, "o": 35.0, "u": 7, "g": 1221.07}, {"d": "2025-10-19", "r": 77.71, "a": 77.71, "o": 10.0, "u": 2, "g": 104.32}, {"d": "2025-10-20", "r": 197.56, "a": 98.78, "o": 20.0, "u": 4, "g": 338.75}, {"d": "2025-10-21", "r": 270.31, "a": 135.16, "o": 20.0, "u": 4, "g": 425.92}, {"d": "2025-10-22", "r": 136.71, "a": 68.36, "o": 15.0, "u": 3, "g": 170.99}, {"d": "2025-10-23", "r": 472.41, "a": 118.1, "o": 25.0, "u": 5, "g": 627.47}, {"d": "2025-10-24", "r": 932.03, "a": 133.15, "o": 40.0, "u": 8, "g": 1229.65}, {"d": "2025-10-25", "r": 932.03, "a": 133.15, "o": 40.0, "u": 8, "g": 1229.65}, {"d": "2025-10-26", "r": 907.36, "a": 129.62, "o": 40.0, "u": 8, "g": 1220.66}, {"d": "2025-10-27", "r": 312.93, "a": 104.31, "o": 20.0, "u": 4, "g": 416.9}, {"d": "2025-10-28", "r": 216.93, "a": 108.47, "o": 15.0, "u": 3, "g": 256.85}, {"d": "2025-10-29", "r": 536.13, "a": 134.03, "o": 25.0, "u": 5, "g": 703.49}, {"d": "2025-10-30", "r": 536.13, "a": 134.03, "o": 25.0, "u": 5, "g": 703.49}, {"d": "2025-10-31", "r": 638.0, "a": 127.6, "o": 30.0, "u": 6, "g": 979.76}, {"d": "2025-11-01", "r": 679.25, "a": 135.85, "o": 30.0, "u": 6, "g": 961.61}, {"d": "2025-11-02", "r": 250.25, "a": 125.12, "o": 15.0, "u": 3, "g": 322.42}, {"d": "2025-11-03", "r": 59.0, "a": 59.0, "o": 10.0, "u": 2, "g": 66.67}, {"d": "2025-11-04", "r": 125.0, "a": 62.5, "o": 15.0, "u": 3, "g": 193.72}, {"d": "2025-11-05", "r": 125.0, "a": 62.5, "o": 15.0, "u": 3, "g": 193.72}, {"d": "2025-11-06", "r": 59.0, "a": 59.0, "o": 10.0, "u": 2, "g": 66.67}, {"d": "2025-11-07", "r": 441.5, "a": 110.38, "o": 25.0, "u": 5, "g": 669.84}, {"d": "2025-11-08", "r": 630.62, "a": 105.1, "o": 35.0, "u": 7, "g": 1098.6}, {"d": "2025-11-09", "r": 96.12, "a": 96.12, "o": 10.0, "u": 2, "g": 145.62}, {"d": "2025-11-10", "r": 0.0, "a": 0.0, "o": 5.0, "u": 1, "g": 0.0}, {"d": "2025-11-11", "r": 0.0, "a": 0.0, "o": 5.0, "u": 1, "g": 0.0}, {"d": "2025-11-12", "r": 96.0, "a": 96.0, "o": 10.0, "u": 2, "g": 209.62}, {"d": "2025-11-13", "r": 0.0, "a": 0.0, "o": 10.0, "u": 2, "g": 0.0}, {"d": "2025-11-14", "r": 163.2, "a": 81.6, "o": 30.0, "u": 6, "g": 296.06}, {"d": "2025-11-15", "r": 329.2, "a": 109.73, "o": 35.0, "u": 7, "g": 515.91}, {"d": "2025-11-16", "r": 186.0, "a": 93.0, "o": 20.0, "u": 4, "g": 277.87}, {"d": "2025-11-17", "r": 136.13, "a": 68.06, "o": 20.0, "u": 4, "g": 180.86}, {"d": "2025-11-18", "r": 62.13, "a": 62.13, "o": 15.0, "u": 3, "g": 70.2}, {"d": "2025-11-19", "r": 136.13, "a": 68.06, "o": 20.0, "u": 4, "g": 190.61}, {"d": "2025-11-20", "r": 221.13, "a": 73.71, "o": 25.0, "u": 5, "g": 321.75}, {"d": "2025-11-21", "r": 339.13, "a": 84.78, "o": 30.0, "u": 6, "g": 513.81}, {"d": "2025-11-22", "r": 535.92, "a": 133.98, "o": 30.0, "u": 6, "g": 809.16}, {"d": "2025-11-23", "r": 551.42, "a": 137.86, "o": 30.0, "u": 6, "g": 798.94}, {"d": "2025-11-24", "r": 421.12, "a": 105.28, "o": 35.0, "u": 7, "g": 552.77}, {"d": "2025-11-25", "r": 336.12, "a": 112.04, "o": 30.0, "u": 6, "g": 423.72}, {"d": "2025-11-26", "r": 283.4, "a": 94.47, "o": 30.0, "u": 6, "g": 365.73}, {"d": "2025-11-27", "r": 533.49, "a": 106.7, "o": 35.0, "u": 7, "g": 759.55}, {"d": "2025-11-28", "r": 515.4, "a": 103.08, "o": 35.0, "u": 7, "g": 688.75}, {"d": "2025-11-29", "r": 551.2, "a": 110.24, "o": 35.0, "u": 7, "g": 747.51}, {"d": "2025-11-30", "r": 287.41, "a": 95.8, "o": 30.0, "u": 6, "g": 408.06}, {"d": "2025-12-01", "r": 111.5, "a": 111.5, "o": 20.0, "u": 4, "g": 131.65}, {"d": "2025-12-02", "r": 111.5, "a": 111.5, "o": 20.0, "u": 4, "g": 131.65}, {"d": "2025-12-03", "r": 314.83, "a": 104.94, "o": 30.0, "u": 6, "g": 428.46}, {"d": "2025-12-04", "r": 401.23, "a": 100.31, "o": 35.0, "u": 7, "g": 625.09}, {"d": "2025-12-05", "r": 599.83, "a": 119.97, "o": 40.0, "u": 8, "g": 916.74}, {"d": "2025-12-06", "r": 574.58, "a": 114.92, "o": 40.0, "u": 8, "g": 915.44}, {"d": "2025-12-07", "r": 193.58, "a": 96.79, "o": 25.0, "u": 5, "g": 273.89}, {"d": "2025-12-08", "r": 111.5, "a": 111.5, "o": 20.0, "u": 4, "g": 131.65}, {"d": "2025-12-09", "r": 185.5, "a": 92.75, "o": 25.0, "u": 5, "g": 225.49}, {"d": "2025-12-10", "r": 185.5, "a": 92.75, "o": 25.0, "u": 5, "g": 225.49}, {"d": "2025-12-11", "r": 185.5, "a": 92.75, "o": 25.0, "u": 5, "g": 225.49}, {"d": "2025-12-12", "r": 259.5, "a": 86.5, "o": 35.0, "u": 7, "g": 384.41}, {"d": "2025-12-13", "r": 400.5, "a": 133.5, "o": 30.0, "u": 6, "g": 625.97}, {"d": "2025-12-14", "r": 217.5, "a": 108.75, "o": 25.0, "u": 5, "g": 370.51}, {"d": "2025-12-15", "r": 111.5, "a": 111.5, "o": 15.0, "u": 3, "g": 131.65}, {"d": "2025-12-16", "r": 204.78, "a": 102.39, "o": 20.0, "u": 4, "g": 356.06}, {"d": "2025-12-17", "r": 135.0, "a": 135.0, "o": 15.0, "u": 3, "g": 231.55}, {"d": "2025-12-18", "r": 80.96, "a": 80.96, "o": 15.0, "u": 3, "g": 130.96}, {"d": "2025-12-19", "r": 381.66, "a": 95.41, "o": 30.0, "u": 6, "g": 571.07}, {"d": "2025-12-20", "r": 381.66, "a": 95.41, "o": 30.0, "u": 6, "g": 571.07}, {"d": "2025-12-21", "r": 341.96, "a": 113.99, "o": 25.0, "u": 5, "g": 427.68}, {"d": "2025-12-22", "r": 479.71, "a": 95.94, "o": 35.0, "u": 7, "g": 778.83}, {"d": "2025-12-23", "r": 307.26, "a": 102.42, "o": 20.0, "u": 4, "g": 448.4}, {"d": "2025-12-24", "r": 805.93, "a": 134.32, "o": 30.0, "u": 6, "g": 1049.15}, {"d": "2025-12-25", "r": 805.93, "a": 134.32, "o": 30.0, "u": 6, "g": 1049.15}, {"d": "2025-12-26", "r": 945.43, "a": 135.06, "o": 35.0, "u": 7, "g": 1207.56}, {"d": "2025-12-27", "r": 959.51, "a": 137.07, "o": 35.0, "u": 7, "g": 1397.39}, {"d": "2025-12-28", "r": 248.39, "a": 82.8, "o": 15.0, "u": 3, "g": 508.19}, {"d": "2025-12-29", "r": 671.02, "a": 111.84, "o": 30.0, "u": 6, "g": 1106.96}, {"d": "2025-12-30", "r": 1235.52, "a": 176.5, "o": 35.0, "u": 7, "g": 1664.91}, {"d": "2025-12-31", "r": 1237.0, "a": 176.71, "o": 35.0, "u": 7, "g": 1613.49}], "m26": [{"month": "2026-01", "revenue": 7128.82, "adr": 70.25, "occupancy": 12.41}, {"month": "2026-02", "revenue": 9040.19, "adr": 96.41, "occupancy": 10.61}, {"month": "2026-03", "revenue": 11021.24, "adr": 115.13, "occupancy": 9.48}, {"month": "2026-04", "revenue": 10547.17, "adr": 141.79, "occupancy": 7.58}, {"month": "2026-05", "revenue": 17360.57, "adr": 294.16, "occupancy": 5.77}, {"month": "2026-06", "revenue": 68932.7, "adr": 354.79, "occupancy": 20.1}, {"month": "2026-07", "revenue": 97839.17, "adr": 383.03, "occupancy": 25.22}, {"month": "2026-08", "revenue": 73171.73, "adr": 378.48, "occupancy": 19.06}, {"month": "2026-09", "revenue": 47674.97, "adr": 431.04, "occupancy": 11.11}, {"month": "2026-10", "revenue": 5105.8, "adr": 462.45, "occupancy": 1.08}, {"month": "2026-11", "revenue": 567.0, "adr": 189.0, "occupancy": 0.3}, {"month": "2026-12", "revenue": 26694.98, "adr": 517.2, "occupancy": 4.5}], "m25": [{"month": "2025-01", "revenue": 6349.59, "adr": 81.89, "occupancy": 12.1}, {"month": "2025-02", "revenue": 8200.3, "adr": 108.6, "occupancy": 13.57}, {"month": "2025-03", "revenue": 12758.94, "adr": 106.21, "occupancy": 18.55}, {"month": "2025-04", "revenue": 17132.53, "adr": 116.47, "occupancy": 23.83}, {"month": "2025-05", "revenue": 21892.52, "adr": 135.02, "occupancy": 24.84}, {"month": "2025-06", "revenue": 30446.59, "adr": 160.5, "occupancy": 30.67}, {"month": "2025-07", "revenue": 44108.91, "adr": 196.15, "occupancy": 37.1}, {"month": "2025-08", "revenue": 42488.18, "adr": 186.96, "occupancy": 37.74}, {"month": "2025-09", "revenue": 21085.88, "adr": 142.39, "occupancy": 24.5}, {"month": "2025-10", "revenue": 19514.9, "adr": 123.83, "occupancy": 27.58}, {"month": "2025-11", "revenue": 8150.26, "adr": 94.52, "occupancy": 22.67}, {"month": "2025-12", "revenue": 13185.78, "adr": 112.91, "occupancy": 27.26}], "fut": [{"month": "2026-04", "expected_rent": 1590.7, "bookings": 7, "avg_nights": 1.7142857142857142}, {"month": "2026-05", "expected_rent": 17360.57, "bookings": 28, "avg_nights": 2.107142857142857}, {"month": "2026-06", "expected_rent": 72500.07, "bookings": 87, "avg_nights": 2.3793103448275863}, {"month": "2026-07", "expected_rent": 96870.92, "bookings": 103, "avg_nights": 2.495145631067961}, {"month": "2026-08", "expected_rent": 70572.61, "bookings": 77, "avg_nights": 2.4025974025974026}, {"month": "2026-09", "expected_rent": 48058.37, "bookings": 45, "avg_nights": 2.466666666666667}, {"month": "2026-10", "expected_rent": 4722.4, "bookings": 3, "avg_nights": 3.3333333333333335}, {"month": "2026-11", "expected_rent": 567.0, "bookings": 1, "avg_nights": 3.0}, {"month": "2026-12", "expected_rent": 40070.64, "bookings": 13, "avg_nights": 5.230769230769231}], "fut_bkgcom": [{"month": "2026-02", "expected_rent": 1590.7, "bookings": 7}, {"month": "2026-03", "expected_rent": 16697.05, "bookings": 26}, {"month": "2026-04", "expected_rent": 71837.51, "bookings": 86}, {"month": "2026-05", "expected_rent": 95082.36, "bookings": 101}, {"month": "2026-06", "expected_rent": 73318.25, "bookings": 81}, {"month": "2026-07", "expected_rent": 48427.37, "bookings": 46}, {"month": "2026-08", "expected_rent": 4722.4, "bookings": 3}, {"month": "2026-09", "expected_rent": 567.0, "bookings": 1}, {"month": "2026-10", "expected_rent": 39888.64, "bookings": 12}, {"month": "2026-11", "expected_rent": 182.0, "bookings": 1}], "fut_other": [{"month": "2026-04", "expected_rent": 1590.7, "bookings": 7}, {"month": "2026-05", "expected_rent": 15338.15, "bookings": 23}, {"month": "2026-06", "expected_rent": 62011.36, "bookings": 84}, {"month": "2026-07", "expected_rent": 100102.01, "bookings": 100}, {"month": "2026-08", "expected_rent": 78452.25, "bookings": 86}, {"month": "2026-09", "expected_rent": 43102.73, "bookings": 43}, {"month": "2026-10", "expected_rent": 11078.44, "bookings": 7}, {"month": "2026-11", "expected_rent": 567.0, "bookings": 1}, {"month": "2026-12", "expected_rent": 8520.039999999999, "bookings": 5}, {"month": "2027-01", "expected_rent": 31550.600000000002, "bookings": 8}], "tot_out": 352313.28, "out_cnt": 364, "exp_cats": {"Bank Fees": -52.7, "Cleaning": -2707.69, "Contractor": -35.0, "Insurance": -580.9, "Maintenance": -3250.0, "Other": -2392.66, "Platform Fees": -468.94, "Rent/Lease": -2225.0, "Software": -223.12, "Supplies": -1218.53, "Telecom": -237.07, "Utilities": -325.75}, "tot_monthly_ops": -13717.36, "daily_ops": -457.25, "props26": 33, "props25": 20, "bmo_monthly": [{"month": "2026-03", "category": "Bank Fees", "amount": -105.4}, {"month": "2026-03", "category": "Cleaning", "amount": -1886.21}, {"month": "2026-03", "category": "Insurance", "amount": -231.74}, {"month": "2026-03", "category": "Maintenance", "amount": -4500.0}, {"month": "2026-03", "category": "Other", "amount": -200.0}, {"month": "2026-03", "category": "Platform Fees", "amount": -875.87}, {"month": "2026-03", "category": "Rent/Lease", "amount": -1250.0}, {"month": "2026-03", "category": "Software", "amount": -446.25}, {"month": "2026-03", "category": "Supplies", "amount": -983.52}, {"month": "2026-03", "category": "Telecom", "amount": -374.14000000000004}, {"month": "2026-03", "category": "Utilities", "amount": -207.95}, {"month": "2026-04", "category": "Cleaning", "amount": -3529.18}, {"month": "2026-04", "category": "Contractor", "amount": -70.0}, {"month": "2026-04", "category": "Insurance", "amount": -930.06}, {"month": "2026-04", "category": "Maintenance", "amount": -2000.0}, {"month": "2026-04", "category": "Other", "amount": -4585.32}, {"month": "2026-04", "category": "Platform Fees", "amount": -62.0}, {"month": "2026-04", "category": "Rent/Lease", "amount": -3200.0}, {"month": "2026-04", "category": "Supplies", "amount": -1453.54}, {"month": "2026-04", "category": "Telecom", "amount": -100.0}, {"month": "2026-04", "category": "Utilities", "amount": -443.56}], "exp_cats_biz": {"Bank Fees": -52.7, "Cleaning": -2707.69, "Contractor": -35.0, "Debt Repayment": -100.0, "Insurance": -580.9, "Maintenance": -3250.0, "Other": -2292.66, "Platform Fees": -468.94, "Rent/Lease": -2225.0, "Software": -223.12, "Supplies & Operations": -711.54, "Telecom": -237.07, "Utilities": -325.75}, "tot_monthly_biz": -13210.37, "personal_monthly": 2582.0, "personal_total": 5163.99, "owner_draw_total": 10450.0, "all_transactions": [{"date": "2026-03-13", "amount": -119.98, "desc": "[CW]METERGY SOL", "category": "Utilities", "type": "business"}, {"date": "2026-03-13", "amount": -87.97, "desc": "[CW]METERGY SOL", "category": "Utilities", "type": "business"}, {"date": "2026-03-13", "amount": -1200.0, "desc": "[CW]INTERAC ETRNSFR SENT     KRISTINE PERSONAL        202607", "category": "Owner Draw \u2014 Personal", "type": "personal"}, {"date": "2026-03-13", "amount": -250.0, "desc": "[CW]INTERAC ETRNSFR SENT     MIKE ADAMS               202607", "category": "Owner Draw \u2014 Wages", "type": "owner_draw"}, {"date": "2026-03-16", "amount": -124.02, "desc": "[PR]CANADIAN TIRE G", "category": "Supplies & Operations", "type": "business"}, {"date": "2026-03-16", "amount": -2.93, "desc": "[PR]WENDY'S #6425", "category": "Personal \u2014 Food & Personal", "type": "personal"}, {"date": "2026-03-16", "amount": -63.06, "desc": "[PR]ANNIES BARREL", "category": "Personal \u2014 Food & Personal", "type": "personal"}, {"date": "2026-03-16", "amount": -300.0, "desc": "[CW]INTERAC ETRNSFR SENT     MIKE ADAMS               202607", "category": "Owner Draw \u2014 Wages", "type": "owner_draw"}, {"date": "2026-03-16", "amount": -38.25, "desc": "[CW]BOOKING.COM", "category": "Platform Fees", "type": "business"}, {"date": "2026-03-16", "amount": -240.16, "desc": "[CW]BOOKING.COM", "category": "Platform Fees", "type": "business"}, {"date": "2026-03-16", "amount": -80.13, "desc": "[CW]BOOKING.COM", "category": "Platform Fees", "type": "business"}, {"date": "2026-03-16", "amount": -89.63, "desc": "[CW]BOOKING.COM", "category": "Platform Fees", "type": "business"}, {"date": "2026-03-16", "amount": -1500.0, "desc": "[CW]INTERAC ETRNSFR SENT     MIKE ADAMS               202607", "category": "Owner Draw \u2014 Wages", "type": "owner_draw"}, {"date": "2026-03-16", "amount": -68.1, "desc": "[CW]BOOKING.COM", "category": "Platform Fees", "type": "business"}, {"date": "2026-03-16", "amount": -9.6, "desc": "[CW]BOOKING.COM", "category": "Platform Fees", "type": "business"}, {"date": "2026-03-16", "amount": -231.74, "desc": "[DS]CAFO INC        INS/ASS", "category": "Insurance", "type": "business"}, {"date": "2026-03-16", "amount": -98.2, "desc": "[PR]FOOD BASICS  67", "category": "Supplies & Operations", "type": "business"}, {"date": "2026-03-16", "amount": -1250.0, "desc": "[CW]INTERAC ETRNSFR SENT     ANDREW ADAMS             202607", "category": "Rent/Lease", "type": "business"}, {"date": "2026-03-17", "amount": -26.27, "desc": "[PR]DOLLARAMA #1367", "category": "Personal \u2014 Food & Personal", "type": "personal"}, {"date": "2026-03-17", "amount": -900.0, "desc": "[CW]INTERAC ETRNSFR SENT     MIKE ADAMS               202607", "category": "Owner Draw \u2014 Wages", "type": "owner_draw"}, {"date": "2026-03-18", "amount": -17.38, "desc": "[PR]HARVEYS #2551", "category": "Personal \u2014 Food & Personal", "type": "personal"}, {"date": "2026-03-18", "amount": -1700.0, "desc": "[CW]INTERAC ETRNSFR SENT     MIKE ADAMS               202607", "category": "Owner Draw \u2014 Wages", "type": "owner_draw"}, {"date": "2026-03-19", "amount": -350.0, "desc": "[CW]INTERAC ETRNSFR SENT     LYNN SIMON CLEANER       202607", "category": "Cleaning", "type": "business"}, {"date": "2026-03-19", "amount": -300.0, "desc": "[CW]INTERAC ETRNSFR SENT     KERRI CLEAN              202607", "category": "Cleaning", "type": "business"}, {"date": "2026-03-19", "amount": -21.21, "desc": "[CW]INTERAC ETRNSFR SENT     KERRI CLEAN              202607", "category": "Cleaning", "type": "business"}, {"date": "2026-03-19", "amount": -210.0, "desc": "[CW]INTERAC ETRNSFR SENT     TANNIS CAIN              202607", "category": "Cleaning", "type": "business"}, {"date": "2026-03-19", "amount": -4500.0, "desc": "[CW]INTERAC ETRNSFR SENT     BURKE BROS               202607", "category": "Maintenance", "type": "business"}, {"date": "2026-03-19", "amount": -500.0, "desc": "[CW]INTERAC ETRNSFR SENT     KRISTINE PERSONAL        202607", "category": "Owner Draw \u2014 Personal", "type": "personal"}, {"date": "2026-03-19", "amount": -200.0, "desc": "[CW]TD VISA/GM VIS", "category": "Debt Repayment", "type": "business"}, {"date": "2026-03-20", "amount": -300.35, "desc": "[CW]KOODO MOBILE", "category": "Telecom", "type": "business"}, {"date": "2026-03-20", "amount": -73.79, "desc": "[DS]TELUS MOBILITY  BPY/FAC", "category": "Telecom", "type": "business"}, {"date": "2026-03-23", "amount": -91.53, "desc": "[PR]FOOD BASICS  67", "category": "Supplies & Operations", "type": "business"}, {"date": "2026-03-23", "amount": -27.06, "desc": "[PR]7 ELEVEN STORE", "category": "Supplies & Operations", "type": "business"}, {"date": "2026-03-23", "amount": -150.0, "desc": "[CW]INTERAC ETRNSFR SENT     MIKE ADAMS               202608", "category": "Owner Draw \u2014 Wages", "type": "owner_draw"}, {"date": "2026-03-23", "amount": -150.0, "desc": "[CW]INTERAC ETRNSFR SENT     TANNIS CAIN              202608", "category": "Cleaning", "type": "business"}, {"date": "2026-03-23", "amount": -250.0, "desc": "[CW]INTERAC ETRNSFR SENT     MIKE ADAMS               202608", "category": "Owner Draw \u2014 Wages", "type": "owner_draw"}, {"date": "2026-03-23", "amount": -1500.0, "desc": "[CW]INTERAC ETRNSFR SENT     MIKE ADAMS               202608", "category": "Owner Draw \u2014 Wages", "type": "owner_draw"}, {"date": "2026-03-24", "amount": -100.0, "desc": "[CW]INTERAC ETRNSFR SENT     MIKE ADAMS               202608", "category": "Owner Draw \u2014 Wages", "type": "owner_draw"}, {"date": "2026-03-25", "amount": -110.7, "desc": "[PR]CANADIAN TIRE G", "category": "Supplies & Operations", "type": "business"}, {"date": "2026-03-26", "amount": -230.0, "desc": "[CW]INTERAC ETRNSFR SENT     LYNN SIMON CLEANER       202608", "category": "Cleaning", "type": "business"}, {"date": "2026-03-26", "amount": -200.0, "desc": "[CW]INTERAC ETRNSFR SENT     TANNIS CAIN              202608", "category": "Cleaning", "type": "business"}, {"date": "2026-03-26", "amount": -446.25, "desc": "[CW]INTERAC ETRNSFR SENT     DOCNET                   202608", "category": "Software", "type": "business"}, {"date": "2026-03-26", "amount": -325.0, "desc": "[CW]INTERAC ETRNSFR SENT     KERRI CLEAN              202608", "category": "Cleaning", "type": "business"}, {"date": "2026-03-27", "amount": -187.34, "desc": "[PR]METRO 100032", "category": "Supplies & Operations", "type": "business"}, {"date": "2026-03-30", "amount": -82.33, "desc": "[PR]TST-TEDDY'S SPO", "category": "Personal \u2014 Food & Personal", "type": "personal"}, {"date": "2026-03-30", "amount": -78.96, "desc": "[PR]WINNERS 271", "category": "Personal \u2014 Food & Personal", "type": "personal"}, {"date": "2026-03-30", "amount": -58.0, "desc": "[PR]SHOPPERS DRUG M", "category": "Personal \u2014 Food & Personal", "type": "personal"}, {"date": "2026-03-30", "amount": -15.74, "desc": "[PR]WEKO SUSHI", "category": "Personal \u2014 Food & Personal", "type": "personal"}, {"date": "2026-03-30", "amount": -200.0, "desc": "[CW]INTERAC ETRNSFR SENT     MIKE ADAMS               202608", "category": "Owner Draw \u2014 Wages", "type": "owner_draw"}, {"date": "2026-03-30", "amount": -100.0, "desc": "[CW]INTERAC ETRNSFR SENT     TANNIS CAIN              202608", "category": "Cleaning", "type": "business"}, {"date": "2026-03-30", "amount": -1500.0, "desc": "[CW]INTERAC ETRNSFR SENT     MIKE ADAMS               202608", "category": "Owner Draw \u2014 Wages", "type": "owner_draw"}, {"date": "2026-03-31", "amount": -25.0, "desc": "[SC]PLAN FEE", "category": "Bank Fees", "type": "business"}, {"date": "2026-03-31", "amount": -51.0, "desc": "[SC]INTERAC E-TRANSFER", "category": "Bank Fees", "type": "business"}, {"date": "2026-03-31", "amount": -350.0, "desc": "[DS]PAYPAL          MSP/DIV", "category": "Platform Fees", "type": "business"}, {"date": "2026-03-31", "amount": -29.4, "desc": "[SC]DISCOUNT  49 AT $0.60", "category": "Bank Fees", "type": "business"}, {"date": "2026-04-01", "amount": -305.0, "desc": "[CW]INTERAC ETRNSFR SENT     LYNN SIMON CLEANER       202609", "category": "Cleaning", "type": "business"}, {"date": "2026-04-01", "amount": -4500.0, "desc": "[CW]INTERAC ETRNSFR SENT     MITCH WILLIAMS 1007 OWNE 202609", "category": "Other", "type": "business"}, {"date": "2026-04-01", "amount": -54.37, "desc": "[PR]FOOD BASICS  67", "category": "Supplies & Operations", "type": "business"}, {"date": "2026-04-01", "amount": -3.38, "desc": "[PR]FOOD BASICS  67", "category": "Supplies & Operations", "type": "business"}, {"date": "2026-04-01", "amount": -85.32, "desc": "[DS]849420000847934 MSP/DIV", "category": "Other", "type": "business"}, {"date": "2026-04-01", "amount": -178.36, "desc": "[CW]INTERAC ETRNSFR SENT     KERRI CLEAN              202609", "category": "Cleaning", "type": "business"}, {"date": "2026-04-01", "amount": -350.0, "desc": "[CW]INTERAC ETRNSFR SENT     KERRI CLEAN              202609", "category": "Cleaning", "type": "business"}, {"date": "2026-04-01", "amount": -250.0, "desc": "[CW]INTERAC ETRNSFR SENT     TANNIS CAIN              202609", "category": "Cleaning", "type": "business"}, {"date": "2026-04-01", "amount": -68.74, "desc": "[PR]CHIP AND CHARLI", "category": "Personal \u2014 Food & Personal", "type": "personal"}, {"date": "2026-04-02", "amount": -1950.0, "desc": "[CW]INTERAC ETRNSFR SENT     402 SERGIO               202609", "category": "Rent/Lease", "type": "business"}, {"date": "2026-04-06", "amount": -70.0, "desc": "[CW]INTERAC ETRNSFR SENT     KEN SNELL                202609", "category": "Contractor", "type": "business"}, {"date": "2026-04-06", "amount": -103.91, "desc": "[PR]WINNERS 271", "category": "Personal \u2014 Food & Personal", "type": "personal"}, {"date": "2026-04-06", "amount": -105.09, "desc": "[PR]COSTCO GAS W141", "category": "Supplies & Operations", "type": "business"}, {"date": "2026-04-06", "amount": -58.49, "desc": "[PR]METRO 100032", "category": "Supplies & Operations", "type": "business"}, {"date": "2026-04-06", "amount": -37.79, "desc": "[PR]DOLLARAMA #1367", "category": "Personal \u2014 Food & Personal", "type": "personal"}, {"date": "2026-04-06", "amount": -104.66, "desc": "[PR]FOOD BASICS  67", "category": "Supplies & Operations", "type": "business"}, {"date": "2026-04-06", "amount": -47.03, "desc": "[PR]7 ELEVEN STORE", "category": "Supplies & Operations", "type": "business"}, {"date": "2026-04-06", "amount": -150.0, "desc": "[CW]INTERAC ETRNSFR SENT     TANNIS CAIN              202609", "category": "Cleaning", "type": "business"}, {"date": "2026-04-07", "amount": -31.25, "desc": "[PR]WENDY'S #6425", "category": "Personal \u2014 Food & Personal", "type": "personal"}, {"date": "2026-04-08", "amount": -100.0, "desc": "[CW]BELLCA ON BUS16", "category": "Telecom", "type": "business"}, {"date": "2026-04-08", "amount": -130.0, "desc": "[CW]INTERAC ETRNSFR SENT     SEAN NORMAN              202609", "category": "Cleaning", "type": "business"}, {"date": "2026-04-08", "amount": -918.02, "desc": "[CW]AVIVA BUSINESS", "category": "Insurance", "type": "business"}, {"date": "2026-04-08", "amount": -77.3, "desc": "[PR]THE USUAL SUSPE", "category": "Personal \u2014 Food & Personal", "type": "personal"}, {"date": "2026-04-08", "amount": -62.12, "desc": "[PR]FOOD BASICS  67", "category": "Supplies & Operations", "type": "business"}, {"date": "2026-04-09", "amount": -280.0, "desc": "[CW]INTERAC ETRNSFR SENT     LYNN SIMON CLEANER       202609", "category": "Cleaning", "type": "business"}, {"date": "2026-04-09", "amount": -290.0, "desc": "[CW]INTERAC ETRNSFR SENT     TANNIS CAIN              202609", "category": "Cleaning", "type": "business"}, {"date": "2026-04-09", "amount": -475.0, "desc": "[CW]INTERAC ETRNSFR SENT     KERRI CLEAN              202609", "category": "Cleaning", "type": "business"}, {"date": "2026-04-09", "amount": -2000.0, "desc": "[CW]INTERAC ETRNSFR SENT     BURKE BROS               202609", "category": "Maintenance", "type": "business"}, {"date": "2026-04-09", "amount": -1000.0, "desc": "[CW]INTERAC ETRNSFR SENT     KRISTINE PERSONAL        202609", "category": "Owner Draw \u2014 Personal", "type": "personal"}, {"date": "2026-04-10", "amount": -200.0, "desc": "[CW]INTERAC ETRNSFR SENT     MIKE ADAMS               202610", "category": "Owner Draw \u2014 Wages", "type": "owner_draw"}, {"date": "2026-04-10", "amount": -90.27, "desc": "[PR]WINNERS 271", "category": "Personal \u2014 Food & Personal", "type": "personal"}, {"date": "2026-04-10", "amount": -94.25, "desc": "[PR]CHIP AND CHARLI", "category": "Personal \u2014 Food & Personal", "type": "personal"}, {"date": "2026-04-13", "amount": -400.0, "desc": "[CW]INTERAC ETRNSFR SENT     KRISTINE PC              202610", "category": "Owner Draw \u2014 Personal", "type": "personal"}, {"date": "2026-04-13", "amount": -24.6, "desc": "[PR]GEORGE'S GREEK", "category": "Personal \u2014 Food & Personal", "type": "personal"}, {"date": "2026-04-13", "amount": -15.0, "desc": "[PR]SHOPPERS DRUG M", "category": "Personal \u2014 Food & Personal", "type": "personal"}, {"date": "2026-04-13", "amount": -50.38, "desc": "[PR]COSTCO WHOLESAL", "category": "Supplies & Operations", "type": "business"}, {"date": "2026-04-13", "amount": -100.0, "desc": "[PR]PETRO-CANADA 65", "category": "Supplies & Operations", "type": "business"}, {"date": "2026-04-13", "amount": -2.5, "desc": "[PR]AIR-SERV A AN04", "category": "Personal \u2014 Food & Personal", "type": "personal"}, {"date": "2026-04-13", "amount": -1200.0, "desc": "[CW]INTERAC ETRNSFR SENT     MIKE ADAMS               202610", "category": "Owner Draw \u2014 Wages", "type": "owner_draw"}, {"date": "2026-04-13", "amount": -175.0, "desc": "[CW]INTERAC ETRNSFR SENT     KRISTINE PC              202610", "category": "Owner Draw \u2014 Personal", "type": "personal"}, {"date": "2026-04-13", "amount": -62.0, "desc": "[DS]PAYPAL          MSP/DIV", "category": "Platform Fees", "type": "business"}, {"date": "2026-04-13", "amount": -23.71, "desc": "[PR]HARVEYS #2551", "category": "Personal \u2014 Food & Personal", "type": "personal"}, {"date": "2026-04-13", "amount": -375.0, "desc": "[CW]INTERAC ETRNSFR SENT     KRISTINE PC              202610", "category": "Owner Draw \u2014 Personal", "type": "personal"}, {"date": "2026-04-14", "amount": -300.0, "desc": "[CW]INTERAC ETRNSFR SENT     MIKE ADAMS               202610", "category": "Owner Draw \u2014 Wages", "type": "owner_draw"}, {"date": "2026-04-14", "amount": -200.0, "desc": "[CW]INTERAC ETRNSFR SENT     MIKE ADAMS               202610", "category": "Owner Draw \u2014 Wages", "type": "owner_draw"}, {"date": "2026-04-15", "amount": -500.0, "desc": "[CW]INTERAC ETRNSFR SENT     KRISTINE PERSONAL        202610", "category": "Owner Draw \u2014 Personal", "type": "personal"}, {"date": "2026-04-15", "amount": -4.14, "desc": "[PR]SHOPPERS DRUG M", "category": "Personal \u2014 Food & Personal", "type": "personal"}, {"date": "2026-04-15", "amount": -98.93, "desc": "[PR]METRO 100032", "category": "Supplies & Operations", "type": "business"}, {"date": "2026-04-15", "amount": -99.77, "desc": "[PR]FOOD BASICS  67", "category": "Supplies & Operations", "type": "business"}, {"date": "2026-04-15", "amount": -200.0, "desc": "[CW]INTERAC ETRNSFR SENT     MIKE ADAMS               202610", "category": "Owner Draw \u2014 Wages", "type": "owner_draw"}, {"date": "2026-04-15", "amount": -12.04, "desc": "[DS]CAFO INC        INS/ASS", "category": "Insurance", "type": "business"}, {"date": "2026-04-16", "amount": -1250.0, "desc": "[CW]INTERAC ETRNSFR SENT     ANDREW ADAMS             202610", "category": "Rent/Lease", "type": "business"}, {"date": "2026-04-16", "amount": -670.0, "desc": "[CW]INTERAC ETRNSFR SENT     TANNIS CAIN              202610", "category": "Cleaning", "type": "business"}, {"date": "2026-04-16", "amount": -79.94, "desc": "[CW]METERGY SOL", "category": "Utilities", "type": "business"}, {"date": "2026-04-16", "amount": -107.43, "desc": "[CW]METERGY SOL", "category": "Utilities", "type": "business"}, {"date": "2026-04-16", "amount": -156.19, "desc": "[CW]ENBRIDGE", "category": "Utilities", "type": "business"}, {"date": "2026-04-16", "amount": -100.0, "desc": "[CW]NIAGARA PN ENGY", "category": "Utilities", "type": "business"}, {"date": "2026-04-16", "amount": -50.82, "desc": "[CW]INTERAC ETRNSFR SENT     KERRI CLEAN              202610", "category": "Cleaning", "type": "business"}, {"date": "2026-04-16", "amount": -400.0, "desc": "[CW]INTERAC ETRNSFR SENT     KERRI CLEAN              202610", "category": "Cleaning", "type": "business"}, {"date": "2026-04-17", "amount": -95.86, "desc": "[PR]THE USUAL SUSPE", "category": "Personal \u2014 Food & Personal", "type": "personal"}], "neo_cats": {"Neo \u2014 Software": {"monthly_avg": 5766.47, "type": "business"}, "Neo \u2014 Marketing/Ads": {"monthly_avg": 2874.38, "type": "business"}, "Neo \u2014 Other": {"monthly_avg": 207.58, "type": "business"}, "Neo \u2014 Financial/Fees": {"monthly_avg": 24.46, "type": "business"}, "Neo \u2014 Personal/Living": {"monthly_avg": 780.55, "type": "personal"}, "Neo \u2014 Food & Dining": {"monthly_avg": 477.26, "type": "personal"}}, "neo_biz_monthly": 8872.89, "neo_pers_monthly": 1257.81, "neo_total_monthly": 10130.7, "neo_vendors": [{"category": "Neo \u2014 Software", "vendor": "Clay Labs Inc", "monthly_avg": 1396.08, "type": "business"}, {"category": "Neo \u2014 Software", "vendor": "Instantly", "monthly_avg": 755.47, "type": "business"}, {"category": "Neo \u2014 Software", "vendor": "Apollo.io", "monthly_avg": 407.75, "type": "business"}, {"category": "Neo \u2014 Software", "vendor": "OpenAI ChatGPT", "monthly_avg": 362.44, "type": "business"}, {"category": "Neo \u2014 Software", "vendor": "Manus AI", "monthly_avg": 336.17, "type": "business"}, {"category": "Neo \u2014 Software", "vendor": "Cognition Labs (Devin)", "monthly_avg": 311.82, "type": "business"}, {"category": "Neo \u2014 Software", "vendor": "OpenAI", "monthly_avg": 212.81, "type": "business"}, {"category": "Neo \u2014 Software", "vendor": "Google Workspace", "monthly_avg": 192.22, "type": "business"}, {"category": "Neo \u2014 Software", "vendor": "Claude.AI", "monthly_avg": 181.29, "type": "business"}, {"category": "Neo \u2014 Software", "vendor": "Mailscale.ai", "monthly_avg": 172.74, "type": "business"}, {"category": "Neo \u2014 Software", "vendor": "Tracerfy.com", "monthly_avg": 140.91, "type": "business"}, {"category": "Neo \u2014 Software", "vendor": "HighLevel Agency", "monthly_avg": 135.49, "type": "business"}, {"category": "Neo \u2014 Software", "vendor": "Anthropic", "monthly_avg": 112.1, "type": "business"}, {"category": "Neo \u2014 Software", "vendor": "Scribe.how", "monthly_avg": 111.02, "type": "business"}, {"category": "Neo \u2014 Software", "vendor": "Million Verifier", "monthly_avg": 104.98, "type": "business"}, {"category": "Neo \u2014 Software", "vendor": "Blaze.ai", "monthly_avg": 96.06, "type": "business"}, {"category": "Neo \u2014 Software", "vendor": "Windsor.ai", "monthly_avg": 82.72, "type": "business"}, {"category": "Neo \u2014 Software", "vendor": "DigitalOcean", "monthly_avg": 71.08, "type": "business"}, {"category": "Neo \u2014 Software", "vendor": "GoDaddy", "monthly_avg": 60.8, "type": "business"}, {"category": "Neo \u2014 Software", "vendor": "N8N Cloud", "monthly_avg": 54.31, "type": "business"}, {"category": "Neo \u2014 Software", "vendor": "Microsoft", "monthly_avg": 43.13, "type": "business"}, {"category": "Neo \u2014 Software", "vendor": "Fireflies.ai", "monthly_avg": 40.31, "type": "business"}, {"category": "Neo \u2014 Software", "vendor": "Gamma.app", "monthly_avg": 38.96, "type": "business"}, {"category": "Neo \u2014 Software", "vendor": "Notion", "monthly_avg": 37.97, "type": "business"}, {"category": "Neo \u2014 Software", "vendor": "Clawbot", "monthly_avg": 33.98, "type": "business"}, {"category": "Neo \u2014 Software", "vendor": "Airtable", "monthly_avg": 33.34, "type": "business"}, {"category": "Neo \u2014 Software", "vendor": "Figma", "monthly_avg": 29.96, "type": "business"}, {"category": "Neo \u2014 Software", "vendor": "DocuSign", "monthly_avg": 22.19, "type": "business"}, {"category": "Neo \u2014 Software", "vendor": "HighLevel Inc", "monthly_avg": 20.83, "type": "business"}, {"category": "Neo \u2014 Software", "vendor": "Apify", "monthly_avg": 20.45, "type": "business"}, {"category": "Neo \u2014 Software", "vendor": "OpenClaw", "monthly_avg": 20.44, "type": "business"}, {"category": "Neo \u2014 Software", "vendor": "Linktree", "monthly_avg": 19.25, "type": "business"}, {"category": "Neo \u2014 Software", "vendor": "Ollama", "monthly_avg": 14.02, "type": "business"}, {"category": "Neo \u2014 Software", "vendor": "Clay Software", "monthly_avg": 13.87, "type": "business"}, {"category": "Neo \u2014 Software", "vendor": "ElevenLabs", "monthly_avg": 7.86, "type": "business"}, {"category": "Neo \u2014 Software", "vendor": "Miro", "monthly_avg": 7.83, "type": "business"}, {"category": "Neo \u2014 Marketing/Ads", "vendor": "Authority Entrepreneurs", "monthly_avg": 830.71, "type": "business"}, {"category": "Neo \u2014 Marketing/Ads", "vendor": "Growth Today LLC", "monthly_avg": 730.53, "type": "business"}, {"category": "Neo \u2014 Marketing/Ads", "vendor": "Facebook/Meta Ads", "monthly_avg": 621.47, "type": "business"}, {"category": "Neo \u2014 Marketing/Ads", "vendor": "Facebook Ads #2", "monthly_avg": 539.21, "type": "business"}, {"category": "Neo \u2014 Marketing/Ads", "vendor": "Facebook Ads #3", "monthly_avg": 78.81, "type": "business"}, {"category": "Neo \u2014 Marketing/Ads", "vendor": "AirDNA", "monthly_avg": 73.65, "type": "business"}, {"category": "Neo \u2014 Marketing/Ads", "vendor": "Facebook Ads #4", "monthly_avg": 0.01, "type": "business"}, {"category": "Neo \u2014 Other", "vendor": "P.Skool.com", "monthly_avg": 41.57, "type": "business"}, {"category": "Neo \u2014 Other", "vendor": "LM St Catharines", "monthly_avg": 36.2, "type": "business"}, {"category": "Neo \u2014 Other", "vendor": "NumVerify", "monthly_avg": 31.18, "type": "business"}, {"category": "Neo \u2014 Other", "vendor": "DecipherTools", "monthly_avg": 21.03, "type": "business"}, {"category": "Neo \u2014 Other", "vendor": "xAI (Grok)", "monthly_avg": 20.79, "type": "business"}, {"category": "Neo \u2014 Other", "vendor": "Menkes-25 York St", "monthly_avg": 19.64, "type": "business"}, {"category": "Neo \u2014 Other", "vendor": "Toloka.ai", "monthly_avg": 13.86, "type": "business"}, {"category": "Neo \u2014 Other", "vendor": "Google Services", "monthly_avg": 7.21, "type": "business"}, {"category": "Neo \u2014 Other", "vendor": "Skool.com", "monthly_avg": 6.25, "type": "business"}, {"category": "Neo \u2014 Other", "vendor": "Better Proposals", "monthly_avg": 4.16, "type": "business"}, {"category": "Neo \u2014 Other", "vendor": "Agent Pilot", "monthly_avg": 3.48, "type": "business"}, {"category": "Neo \u2014 Other", "vendor": "Apple.com/Bill", "monthly_avg": 2.21, "type": "business"}, {"category": "Neo \u2014 Financial/Fees", "vendor": "Balance Protection Premium", "monthly_avg": 19.56, "type": "business"}, {"category": "Neo \u2014 Financial/Fees", "vendor": "Credit Monthly Fee", "monthly_avg": 4.91, "type": "business"}, {"category": "Neo \u2014 Personal/Living", "vendor": "Vaultra Self Storage", "monthly_avg": 573.15, "type": "personal"}, {"category": "Neo \u2014 Personal/Living", "vendor": "Falls Pharmacy", "monthly_avg": 88.52, "type": "personal"}, {"category": "Neo \u2014 Personal/Living", "vendor": "Cole Haan", "monthly_avg": 34.94, "type": "personal"}, {"category": "Neo \u2014 Personal/Living", "vendor": "Costco", "monthly_avg": 30.29, "type": "personal"}, {"category": "Neo \u2014 Personal/Living", "vendor": "Car Wash", "monthly_avg": 16.2, "type": "personal"}, {"category": "Neo \u2014 Personal/Living", "vendor": "Esso/Gas", "monthly_avg": 16.17, "type": "personal"}, {"category": "Neo \u2014 Personal/Living", "vendor": "Shoppers Drug Mart", "monthly_avg": 11.47, "type": "personal"}, {"category": "Neo \u2014 Personal/Living", "vendor": "7 Eleven", "monthly_avg": 9.8, "type": "personal"}, {"category": "Neo \u2014 Food & Dining", "vendor": "Starbucks", "monthly_avg": 291.32, "type": "personal"}, {"category": "Neo \u2014 Food & Dining", "vendor": "Harbour 60 Steakhouse", "monthly_avg": 78.56, "type": "personal"}, {"category": "Neo \u2014 Food & Dining", "vendor": "Chucks Roadhouse", "monthly_avg": 28.61, "type": "personal"}, {"category": "Neo \u2014 Food & Dining", "vendor": "Weinlokal", "monthly_avg": 17.97, "type": "personal"}, {"category": "Neo \u2014 Food & Dining", "vendor": "Pita Pit", "monthly_avg": 15.16, "type": "personal"}, {"category": "Neo \u2014 Food & Dining", "vendor": "The Pizzeria", "monthly_avg": 12.75, "type": "personal"}, {"category": "Neo \u2014 Food & Dining", "vendor": "Realsports", "monthly_avg": 11.98, "type": "personal"}, {"category": "Neo \u2014 Food & Dining", "vendor": "Wendy's", "monthly_avg": 8.63, "type": "personal"}, {"category": "Neo \u2014 Food & Dining", "vendor": "Tim Hortons", "monthly_avg": 9.24, "type": "personal"}, {"category": "Neo \u2014 Food & Dining", "vendor": "Burger King", "monthly_avg": 5.26, "type": "personal"}], "combined_biz_ops": 13210.37, "combined_personal": 2582.0, "combined_daily_ops": 440.35, "neo_note": "Neo Card spend = BMO→Neo funding transfer. Not additive to BMO totals."};
+const $=id=>document.getElementById(id);
+const fmt=(n,d=0)=>new Intl.NumberFormat('en-CA',{maximumFractionDigits:d,minimumFractionDigits:d}).format(n);
+const fmtC=(n,d=0)=>(n<0?'-':'')+'$'+fmt(Math.abs(n),d);
+const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const TODAY='2026-04-18';
+const CD={plugins:{legend:{labels:{color:'#8892a4',font:{size:10}}}},
+  scales:{x:{ticks:{color:'#8892a4',font:{size:10}},grid:{color:'#2a2d3e'}},
+          y:{ticks:{color:'#8892a4',font:{size:10}},grid:{color:'#2a2d3e'}}}};
+function mkChart(id,type,labels,datasets,extra={}){
+  const el=$(id);if(!el)return;if(el._ch)el._ch.destroy();
+  el._ch=new Chart(el,{type,data:{labels,datasets},options:{...CD,responsive:true,maintainAspectRatio:false,...extra}});
+}
+function showTab(name){
+  const names=['overview','daily','expenses','outstanding','calculator','scenario'];
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',names[i]===name));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  $('panel-'+name).classList.add('active');
+}
+function showScenario(e,name){
+  document.querySelectorAll('.stab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.scenario-panel').forEach(p=>p.classList.remove('active'));
+  e.target.classList.add('active');$('sc-'+name).classList.add('active');
+  if(name==='goalseek')goalSeek();if(name==='daterange')dateRange();if(name==='compare')compareScenarios();
+}
+function showExpSrc(e,name){
+  document.querySelectorAll('.esrc').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.esrc-panel').forEach(p=>p.classList.remove('active'));
+  e.target.classList.add('active');$('exp-'+name).classList.add('active');
+  if(name==='neo'){renderNeo();buildNeoCharts();}
+  if(name==='personal')renderPersonal();
+}
+function addDays(s,n){const d=new Date(s+'T00:00:00');d.setDate(d.getDate()+n);return d.toISOString().slice(0,10);}
+
+// ── Overview ─────────────────────────────────────────────────────────────────
+function buildOverview(){
+  const ytd=SD.d26.filter(r=>r.d<=TODAY);
+  const ytdRev=ytd.reduce((s,r)=>s+r.r,0);
+  const adrR=SD.d26.filter(r=>r.a>0);
+  const avgADR=adrR.reduce((s,r)=>s+r.a,0)/adrR.length;
+  const avgOcc=SD.d26.reduce((s,r)=>s+r.o,0)/SD.d26.length;
+  const totalOps=SD.combined_biz_ops||13210;
+  const breakEven=Math.ceil(totalOps/(avgADR*25*0.65));
+  const propsFor500=Math.ceil((totalOps+500*30)/(avgADR*25*0.65));
+  $('kpi-overview').innerHTML=`
+        <div class="kpi" style="grid-column:1/-1;background:rgba(247,196,64,.08);border:1px solid rgba(247,196,64,.3);padding:8px 14px;font-size:11px;color:#f7c440;border-radius:8px;margin-bottom:4px">
+      ⚠️ <b>Occupancy note:</b> Currently calculated using all ${SD.props26} properties as the denominator for all of 2026. This understates occupancy for properties added mid-year. Accurate occupancy (by property create date) will apply once Hostfully API sync is connected.
+    </div>
+<div class="kpi green"><label>YTD Revenue 2026</label><div class="val">${fmtC(ytdRev)}</div><div class="sub">Jan 1 – Apr 18</div></div>
+    <div class="kpi blue"><label>Avg ADR 2026</label><div class="val">${fmtC(avgADR)}</div><div class="sub">Per booked unit/night</div></div>
+    <div class="kpi amber"><label>Avg Occupancy</label><div class="val">${fmt(avgOcc,1)}%</div><div class="sub">${SD.props26} active properties</div></div>
+    <div class="kpi green"><label>Outstanding</label><div class="val">${fmtC(SD.tot_out)}</div><div class="sub">${SD.out_cnt} confirmed bookings</div></div>
+    <div class="kpi red"><label>Total Ops/mo</label><div class="val">${fmtC(totalOps)}</div><div class="sub">BMO + Neo business</div></div>
+    <div class="kpi red"><label>Daily Ops Cost</label><div class="val">${fmtC(SD.combined_daily_ops||440)}</div><div class="sub">Business expenses only</div></div>
+    <div class="kpi purple"><label>Break-Even Props</label><div class="val">${breakEven}</div><div class="sub">At current ADR/occ</div></div>
+    <div class="kpi amber"><label>Props for $500/day</label><div class="val">${propsFor500}</div><div class="sub">Net profit target</div></div>
+  `;
+  const mo26=SD.m26,mo25=SD.m25;
+  const futMap={};SD.fut.forEach(r=>{futMap[r.month.slice(5,7)]=r.expected_rent;});
+  const futArr=MO.map((_,i)=>futMap[String(i+1).padStart(2,'0')]||0);
+  mkChart('ch-rev','bar',MO,[
+    {label:'2026 Actual',data:mo26.map(r=>r.revenue),backgroundColor:'rgba(79,142,247,.75)',borderRadius:3,stack:'a'},
+    {label:'2026 Outstanding',data:futArr,backgroundColor:'rgba(167,139,250,.55)',borderRadius:3,stack:'a'},
+    {label:'2025 Actual',data:mo25.map(r=>r.revenue),backgroundColor:'rgba(45,212,160,.35)',borderRadius:3,stack:'b'}
+  ],{scales:{x:{ticks:{color:'#8892a4'},grid:{color:'#2a2d3e'},stacked:true},y:{ticks:{color:'#8892a4',callback:v=>'$'+fmt(v)},grid:{color:'#2a2d3e'}}}});
+  mkChart('ch-adr','line',MO,[
+    {label:'2026',data:mo26.map(r=>r.adr),borderColor:'#4f8ef7',backgroundColor:'rgba(79,142,247,.1)',tension:.4,fill:true,pointRadius:3},
+    {label:'2025',data:mo25.map(r=>r.adr),borderColor:'#2dd4a0',backgroundColor:'rgba(45,212,160,.07)',tension:.4,fill:true,pointRadius:3}
+  ],{scales:{x:{ticks:{color:'#8892a4'},grid:{color:'#2a2d3e'}},y:{ticks:{color:'#8892a4',callback:v=>'$'+v},grid:{color:'#2a2d3e'}}}});
+  mkChart('ch-occ','line',MO,[
+    {label:'2026',data:mo26.map(r=>r.occupancy),borderColor:'#fbbf24',tension:.4,fill:false,pointRadius:3},
+    {label:'2025',data:mo25.map(r=>r.occupancy),borderColor:'rgba(251,191,36,.4)',tension:.4,fill:false,pointRadius:3,borderDash:[4,3]}
+  ],{scales:{x:{ticks:{color:'#8892a4'},grid:{color:'#2a2d3e'}},y:{ticks:{color:'#8892a4',callback:v=>v+'%'},grid:{color:'#2a2d3e'}}}});
+}
+
+// ── Daily ─────────────────────────────────────────────────────────────────────
+function renderDaily(){
+  const yr=$('yr-sel').value,mo=$('mo-sel').value,srch=$('dt-srch').value;
+  const moIdx=mo?MO.indexOf(mo):-1;
+  let rows=yr==='2026'?SD.d26:SD.d25;
+  if(moIdx>=0)rows=rows.filter(r=>new Date(r.d+'T00:00:00').getMonth()===moIdx);
+  if(srch)rows=rows.filter(r=>r.d.includes(srch));
+  $('row-cnt').textContent=rows.length+' rows';
+  const tb=$('daily-body');tb.innerHTML='';
+  rows.forEach(r=>{
+    const dt=new Date(r.d+'T00:00:00'),day=DAYS[dt.getDay()],bw=Math.min(75,r.o*1.1);
+    const badge=r.o>=50?'<span class="badge high">High</span>':r.o>=25?'<span class="badge med">Mid</span>':r.r>0?'<span class="badge low">Low</span>':'<span class="badge low">Empty</span>';
+    const fut=r.d>TODAY?'<span class="badge future">Expected</span>':'';
+    tb.innerHTML+=`<tr>
+      <td><b>${r.d}</b></td><td style="color:var(--muted)">${day}</td><td>${r.u}</td>
+      <td style="color:var(--accent)">${r.a>0?'$'+fmt(r.a,2):'—'}</td>
+      <td><span class="occ-bar" style="width:${bw}px"></span> ${fmt(r.o,1)}%</td>
+      <td style="color:var(--green)">${r.r>0?'$'+fmt(r.r,2):'—'}</td>
+      <td style="color:var(--muted)">${r.g>0?'$'+fmt(r.g,2):'—'}</td>
+      <td><span style="color:var(--purple);font-size:11px">${r.r>0?addDays(r.d,-60):'—'}</span></td>
+      <td><span style="color:var(--green);font-size:11px">${r.r>0?addDays(r.d,3):'—'}</span></td>
+      <td>${badge} ${fut}</td></tr>`;
+  });
+}
+
+// ── Expenses ─────────────────────────────────────────────────────────────────
+function buildExpenses(){
+  const totalOps=SD.combined_biz_ops||13210;
+  $('kpi-total-ops').textContent='$'+fmt(totalOps);
+  $('kpi-daily-ops').textContent='$'+fmt(totalOps/30,0);
+  $('kpi-bmo-ops').textContent='$'+fmt(Math.abs(SD.tot_monthly_biz||13210));
+  $('kpi-neo-ops').textContent='$'+fmt(SD.neo_biz_monthly||8873);
+  $('kpi-pers-total').textContent='$'+fmt(SD.combined_personal||2582)+'/mo';
+
+  const bmoOps=Math.abs(SD.tot_monthly_biz||13210);
+  const neoOps=SD.neo_biz_monthly||8873;
+  const bmoP=SD.personal_monthly||2582;
+  const neoP=SD.neo_pers_monthly||1258;
+
+  mkChart('ch-combined-pie','doughnut',
+    ['BMO — Direct Ops','Neo — Software','Neo — Marketing','Neo — Other','BMO — Personal ⚠'],
+    [{data:[Math.max(0,bmoOps-(neoOps)),SD.neo_cats?.['Neo — Software']?.monthly_avg||5766,SD.neo_cats?.['Neo — Marketing/Ads']?.monthly_avg||2874,232,bmoP],
+      backgroundColor:['#4f8ef7','#818cf8','#c084fc','#a78bfa','#f87171'],borderColor:'#1a1d27',borderWidth:2}],
+    {plugins:{legend:{position:'right',labels:{color:'#8892a4',font:{size:9},boxWidth:9}}},scales:{x:{display:false},y:{display:false}}})
+
+  mkChart('ch-source-bar','bar',['BMO Total Outflows','Neo Vendor Detail (within BMO)'],[
+    {label:'Business Ops',data:[bmoOps,neoOps],backgroundColor:['rgba(79,142,247,.75)','rgba(129,140,248,.4)'],borderRadius:6},
+    {label:'Personal',data:[bmoP,0],backgroundColor:['rgba(248,113,113,.6)','rgba(248,113,113,.1)'],borderRadius:6}
+  ],{scales:{x:{ticks:{color:'#8892a4'},grid:{color:'#2a2d3e'}},y:{ticks:{color:'#8892a4',callback:v=>'$'+fmt(v)},grid:{color:'#2a2d3e'}}}})
+  renderTxns();
+}
+
+function renderTxns(){
+  const filter=($('txn-filter')||{value:'all'}).value;
+  const srch=(($('txn-srch')||{value:''}).value||'').toLowerCase();
+  let rows=(SD.all_transactions||[]);
+  if(filter!=='all')rows=rows.filter(r=>r.type===filter);
+  if(srch)rows=rows.filter(r=>r.desc.toLowerCase().includes(srch)||r.category.toLowerCase().includes(srch));
+  const cnt=$('txn-cnt');if(cnt)cnt.textContent=rows.length+' txns';
+  const tb=$('txn-body');if(!tb)return;tb.innerHTML='';
+  rows.forEach(r=>{
+    const isP=r.type==='personal',isDr=r.type==='owner_draw';
+    const badge=isP?'<span class="badge personal">⚠️ Personal</span>':isDr?'<span class="badge bkg">Owner Draw</span>':'<span class="badge biz">Business</span>';
+    tb.innerHTML+=`<tr style="${isP?'background:rgba(248,113,113,.04)':''}">
+      <td style="color:var(--muted)">${r.date}</td>
+      <td style="${isP?'color:#f87171':''}">${r.desc}</td>
+      <td style="color:var(--muted);font-size:11px">${r.category}</td>
+      <td style="color:var(--red);font-weight:600">${fmtC(Math.abs(r.amount))}</td>
+      <td>${badge}</td></tr>`;
+  });
+}
+
+function renderNeo(){
+  const srch=($('neo-srch')||{value:''}).value.toLowerCase();
+  let rows=(SD.neo_vendors||[]);
+  if(srch)rows=rows.filter(r=>r.vendor.toLowerCase().includes(srch)||r.category.toLowerCase().includes(srch));
+  const tb=$('neo-body');if(!tb)return;tb.innerHTML='';
+  rows.sort((a,b)=>b.monthly_avg-a.monthly_avg).forEach(r=>{
+    const isP=r.type==='personal';
+    tb.innerHTML+=`<tr style="${isP?'background:rgba(248,113,113,.04)':''}">
+      <td style="${isP?'color:#f87171':''}">${r.vendor}</td>
+      <td><span class="badge ${isP?'personal':'neo'}">${r.category.replace('Neo — ','')}</span></td>
+      <td style="color:var(--${isP?'red':'accent'});font-weight:600">$${fmt(r.monthly_avg,2)}</td>
+      <td style="color:var(--muted)">$${fmt(r.monthly_avg*12,0)}</td>
+      <td>${isP?'<span class="badge personal">⚠️ Personal</span>':'<span class="badge biz">Business</span>'}</td></tr>`;
+  });
+}
+function buildNeoCharts(){
+  const neoCats=SD.neo_cats||{};
+  const bizCats=Object.entries(neoCats).filter(([,v])=>v.type==='business');
+  const colors=['#818cf8','#c084fc','#a78bfa','#e879f9','#38bdf8'];
+  mkChart('ch-neo-pie','doughnut',bizCats.map(([k])=>k.replace('Neo — ','')),
+    [{data:bizCats.map(([,v])=>v.monthly_avg),backgroundColor:colors,borderColor:'#1a1d27',borderWidth:2}],
+    {plugins:{legend:{position:'right',labels:{color:'#8892a4',font:{size:9},boxWidth:9}}},scales:{x:{display:false},y:{display:false}}});
+  const sw=(SD.neo_vendors||[]).filter(v=>v.category==='Neo — Software').sort((a,b)=>b.monthly_avg-a.monthly_avg).slice(0,12);
+  mkChart('ch-neo-sw','bar',sw.map(v=>v.vendor),
+    [{label:'$/mo',data:sw.map(v=>v.monthly_avg),backgroundColor:'rgba(129,140,248,.7)',borderRadius:4}],
+    {indexAxis:'y',scales:{x:{ticks:{color:'#8892a4',callback:v=>'$'+v},grid:{color:'#2a2d3e'}},y:{ticks:{color:'#8892a4',font:{size:9}},grid:{color:'#2a2d3e'}}}});
+}
+function renderPersonal(){
+  const bmoP=(SD.all_transactions||[]).filter(r=>r.type==='personal');
+  const tb1=$('pers-bmo-body');if(tb1){tb1.innerHTML='';
+    bmoP.forEach(r=>tb1.innerHTML+=`<tr><td style="color:var(--muted)">${r.date}</td><td style="color:#f87171">${r.desc}</td><td style="font-size:11px;color:var(--muted)">${r.category}</td><td style="color:var(--red);font-weight:600">${fmtC(Math.abs(r.amount))}</td></tr>`);}
+  const neoP=(SD.neo_vendors||[]).filter(v=>v.type==='personal').sort((a,b)=>b.monthly_avg-a.monthly_avg);
+  const tb2=$('pers-neo-body');if(tb2){tb2.innerHTML='';
+    neoP.forEach(r=>tb2.innerHTML+=`<tr><td style="color:#f87171">${r.vendor}</td><td style="font-size:11px;color:var(--muted)">${r.category.replace('Neo — ','')}</td><td style="color:var(--red);font-weight:600">$${fmt(r.monthly_avg,2)}/mo</td></tr>`);}
+}
+
+// ── Outstanding ───────────────────────────────────────────────────────────────
+function buildOutstanding(){
+  $('kpi-totout').textContent=fmtC(SD.tot_out);$('kpi-outcnt').textContent=SD.out_cnt;
+  mkChart('ch-bkg','bar',SD.fut_bkgcom.map(r=>r.month),
+    [{label:'Bkg.com Cash',data:SD.fut_bkgcom.map(r=>r.expected_rent),backgroundColor:'rgba(167,139,250,.7)',borderRadius:4}],
+    {scales:{x:{ticks:{color:'#8892a4'},grid:{color:'#2a2d3e'}},y:{ticks:{color:'#8892a4',callback:v=>'$'+fmt(v)},grid:{color:'#2a2d3e'}}}});
+  mkChart('ch-oth','bar',SD.fut_other.map(r=>r.month),
+    [{label:'Other Platforms',data:SD.fut_other.map(r=>r.expected_rent),backgroundColor:'rgba(45,212,160,.7)',borderRadius:4}],
+    {scales:{x:{ticks:{color:'#8892a4'},grid:{color:'#2a2d3e'}},y:{ticks:{color:'#8892a4',callback:v=>'$'+fmt(v)},grid:{color:'#2a2d3e'}}}});
+  const tb=$('out-body');tb.innerHTML='';
+  SD.fut.forEach(r=>{
+    const ci=new Date(r.month+'-15');
+    const bD=new Date(ci);bD.setDate(bD.getDate()-60);
+    const oD=new Date(ci);oD.setDate(oD.getDate()+Math.round(r.avg_nights||2)+1);
+    tb.innerHTML+=`<tr><td><b>${r.month}</b></td><td>${r.bookings}</td>
+      <td style="color:var(--green);font-weight:700">${fmtC(r.expected_rent)}</td>
+      <td>${fmt(r.avg_nights,1)} nights</td>
+      <td><span class="badge bkg">~${bD.toISOString().slice(0,10)}</span></td>
+      <td><span class="badge high">~${oD.toISOString().slice(0,10)}</span></td></tr>`;
+  });
+}
+
+// ── Forward Calculator ────────────────────────────────────────────────────────
+function calcForward(){
+  const props=+$('c-props').value,adr=+$('c-adr').value,occ=+$('c-occ').value/100;
+  const avail=+$('c-avail').value;
+  const bmoOps=+$('c-bmo-ops').value,neoOps=+$('c-neo-ops').value;
+  const opex=bmoOps+neoOps;
+  const capex=+$('c-capex').value,capexOnce=+$('c-capex-once').value;
+  const inject=+$('c-inject').value,injectMo=+$('c-inject-mo').value;
+  const period=+$('c-period').value,outstanding=+$('c-out').value,outMo=+$('c-outmo').value;
+  const bkgPct=+$('c-bkg-pct').value/100;
+  const disp=$('combined-ops-display');if(disp)disp.textContent=`Combined: $${fmt(opex)}/mo · $${fmt(opex/30,0)}/day`;
+
+  const moRev=props*adr*avail*occ,totalCost=opex+capex,moNet=moRev-totalCost+injectMo;
+  const perRev=moRev*period,perExp=totalCost*period;
+  const outIncl=outstanding*(period<=outMo?period/outMo:1);
+  const totalIn=perRev+outIncl+inject+injectMo*period;
+  const totalOut=perExp+capexOnce;
+  const totalNet=totalIn-totalOut;
+  const bkgRev=perRev*bkgPct,othRev=perRev*(1-bkgPct);
+  const breakEven=Math.ceil(totalCost/(adr*avail*occ));
+  const propsFor500=Math.ceil((totalCost+500*30)/(adr*avail*occ));
+  const dailyNet=moNet/30;
+
+  $('fwd-out').innerHTML=`
+    <h3 style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;padding-bottom:9px;border-bottom:1px solid var(--border)">
+      ${period}-Month · ${props} Props · ${fmt(occ*100)}% Occ · $${fmt(adr)} ADR</h3>
+    <div class="result-section">
+      <div class="result-row"><span class="rl">Booking Revenue</span><span class="rv pos">${fmtC(perRev)}</span></div>
+      <div class="result-row"><span class="rl" style="padding-left:10px">↳ Bkg.com ${fmt(bkgPct*100)}% — cash −60d pre-arrival</span><span class="rv pur">${fmtC(bkgRev)}</span></div>
+      <div class="result-row"><span class="rl" style="padding-left:10px">↳ Other ${fmt((1-bkgPct)*100)}% — cash +1d post-checkout</span><span class="rv pos">${fmtC(othRev)}</span></div>
+      <div class="result-row"><span class="rl">Outstanding Receivables</span><span class="rv pos">+ ${fmtC(outIncl)}</span></div>
+      ${inject>0?`<div class="result-row"><span class="rl" style="color:var(--green)">⬆ Capital Injection</span><span class="rv pos">+ ${fmtC(inject)}</span></div>`:''}
+      ${injectMo>0?`<div class="result-row"><span class="rl" style="color:var(--green)">⬆ Monthly Injection ×${period}</span><span class="rv pos">+ ${fmtC(injectMo*period)}</span></div>`:''}
+    </div>
+    <div class="result-row" style="padding:10px 0"><span class="rl" style="font-weight:700">Total Inflow</span><span class="rv pos" style="font-size:20px">${fmtC(totalIn)}</span></div>
+    <div class="result-section">
+      <div class="result-row"><span class="rl">BMO Ops × ${period}</span><span class="rv neg">- ${fmtC(bmoOps*period)}</span></div>
+      <div class="result-row"><span class="rl">Neo Ops × ${period}</span><span class="rv neg">- ${fmtC(neoOps*period)}</span></div>
+      ${capex>0?`<div class="result-row"><span class="rl">CAPEX/Debt × ${period}</span><span class="rv" style="color:var(--orange)">- ${fmtC(capex*period)}</span></div>`:''}
+      ${capexOnce>0?`<div class="result-row"><span class="rl">One-Time Capital Expense</span><span class="rv" style="color:var(--orange)">- ${fmtC(capexOnce)}</span></div>`:''}
+    </div>
+    <div class="result-row" style="padding:12px 0;${totalNet>=0?'background:rgba(45,212,160,.04)':'background:rgba(248,113,113,.04)'};border-radius:8px">
+      <span class="rl" style="font-weight:700;font-size:13px">Net Cashflow (${period} mo)</span>
+      <span class="rv ${totalNet>=0?'pos':'neg'}" style="font-size:22px">${totalNet>=0?'+':''}${fmtC(totalNet)}</span>
+    </div>
+    <div style="height:6px"></div>
+    <div class="result-row"><span class="rl">Monthly Net</span><span class="rv ${moNet>=0?'pos':'neg'}">${moNet>=0?'+':''}$${fmt(moNet,0)}/mo</span></div>
+    <div class="result-row"><span class="rl">Daily Net</span><span class="rv ${dailyNet>=0?'pos':'neg'}">${dailyNet>=0?'+':''}$${fmt(dailyNet,0)}/day</span></div>
+    <div class="result-row"><span class="rl">Break-Even Properties</span><span class="rv pur">${breakEven} props</span></div>
+    <div class="result-row"><span class="rl">Properties for $500/day net</span><span class="rv pur">${propsFor500} props</span></div>
+    <div class="result-row"><span class="rl">Daily Revenue Required</span><span class="rv neu">$${fmt(totalCost/30,0)}/day</span></div>
+  `;
+  const labels=[],revD=[],expD=[],netD=[];
+  for(let i=1;i<=period;i++){
+    const d=new Date(2026,3+i-1,1);labels.push(MO[d.getMonth()]+' '+d.getFullYear());
+    const outSlice=i<=outMo?outstanding/Math.max(period,outMo):0;
+    const inj=injectMo+(i===1?inject:0),capO=i===1?capexOnce:0;
+    const rv=moRev+outSlice+inj,ex=totalCost+capO;
+    revD.push(+rv.toFixed(2));expD.push(+ex.toFixed(2));netD.push(+(rv-ex).toFixed(2));
+  }
+  mkChart('ch-proj','bar',labels,[
+    {label:'Revenue+Inflow',data:revD,backgroundColor:'rgba(45,212,160,.65)',borderRadius:4,order:2},
+    {label:'Expenses+CAPEX',data:expD,backgroundColor:'rgba(248,113,113,.5)',borderRadius:4,order:2},
+    {label:'Net',data:netD,type:'line',borderColor:'#fbbf24',backgroundColor:'rgba(251,191,36,.1)',tension:.4,fill:true,pointRadius:4,order:1}
+  ],{scales:{x:{ticks:{color:'#8892a4'},grid:{color:'#2a2d3e'}},y:{ticks:{color:'#8892a4',callback:v=>'$'+fmt(v)},grid:{color:'#2a2d3e'}}}});
+}
+
+// ── Goal Seek ─────────────────────────────────────────────────────────────────
+function goalSeek(){
+  const target=+$('gs-target').value,adr=+$('gs-adr').value,occ=+$('gs-occ').value/100;
+  const avail=+$('gs-avail').value,capex=+$('gs-capex').value,inject=+$('gs-inject').value;
+  const bmo=+$('gs-bmo').value,neo=+$('gs-neo').value;
+  const totalCost=bmo+neo+capex-inject;
+  const solve=$('gs-solve').value,props=+$('gs-props').value;
+  $('gs-props-field').style.display=solve==='props'?'none':'block';
+  const reqRev=totalCost+target*30;
+  let answer,lbl,sub;
+  if(solve==='props'){answer=Math.ceil(reqRev/(adr*avail*occ));lbl='Properties Required';sub=`@ $${fmt(adr)} ADR · ${fmt(occ*100)}% occ · ${avail} nights/mo`;}
+  else if(solve==='adr'){answer=Math.ceil(reqRev/(avail*occ*props));lbl='ADR Required ($/night)';sub=`With ${props} props · ${fmt(occ*100)}% occ`;}
+  else{answer=Math.min(100,Math.ceil(reqRev/(avail*adr*props)*100));lbl='Occupancy % Required';sub=`With ${props} props · $${fmt(adr)} ADR`;}
+  const breakEven=Math.ceil(totalCost/(adr*avail*occ));
+  $('gs-solve-box').innerHTML=`
+    <div class="solve-box">
+      <div class="sv-lbl">${lbl}</div>
+      <div class="sv-val">${solve==='occ'?answer+'%':solve==='adr'?'$'+fmt(answer):answer}</div>
+      <div class="sv-sub">${sub}</div>
+    </div>
+    <div class="calc-result">
+      <div class="result-row"><span class="rl">Target Daily Net</span><span class="rv pos">$${fmt(target)}/day</span></div>
+      <div class="result-row"><span class="rl">Required Monthly Revenue</span><span class="rv pos">${fmtC(reqRev)}/mo</span></div>
+      <div class="result-row"><span class="rl">Total Monthly Cost</span><span class="rv neg">${fmtC(totalCost)}/mo</span></div>
+      <div class="result-row"><span class="rl">Break-Even Properties</span><span class="rv pur">${breakEven}</span></div>
+    </div>`;
+  const targets=[100,200,300,500,750,1000,1500,2000];
+  mkChart('ch-goalseek','line',targets.map(t=>'$'+t+'/day'),[
+    {label:'Properties Needed',data:targets.map(t=>Math.ceil((totalCost+t*30)/(adr*avail*occ))),
+     borderColor:'#4f8ef7',backgroundColor:'rgba(79,142,247,.15)',tension:.3,fill:true,pointRadius:4}
+  ],{scales:{x:{title:{display:true,text:'Daily Net Target',color:'#8892a4'},ticks:{color:'#8892a4'},grid:{color:'#2a2d3e'}},
+             y:{title:{display:true,text:'Properties Required',color:'#8892a4'},ticks:{color:'#8892a4'},grid:{color:'#2a2d3e'}}}});
+}
+
+// ── Date Range ────────────────────────────────────────────────────────────────
+function dateRange(){
+  const start=new Date($('dr-start').value+'T00:00:00'),end=new Date($('dr-end').value+'T00:00:00');
+  if(end<=start){$('dr-result').innerHTML='<p style="color:var(--red);padding:20px">End must be after start</p>';return;}
+  const days=Math.ceil((end-start)/86400000),months=days/30;
+  const props=+$('dr-props').value,adr=+$('dr-adr').value,occ=+$('dr-occ').value/100,avail=+$('dr-avail').value;
+  const bmo=+$('dr-bmo').value,neo=+$('dr-neo').value,opex=bmo+neo;
+  const bkgPct=+$('dr-bkg').value/100,outstanding=+$('dr-out').value;
+  const capex=+$('dr-capex').value,capexOnce=+$('dr-capex-once').value,inject=+$('dr-inject').value;
+  const moRev=props*adr*avail*occ;
+  const totalRev=moRev*months+outstanding+inject;
+  const totalExp=(opex+capex)*months+capexOnce;
+  const totalNet=totalRev-totalExp;
+  const dailyNet=totalNet/days;
+  const breakEven=Math.ceil((opex+capex)/(adr*avail*occ));
+  const propsFor500=Math.ceil((opex+capex+500*30)/(adr*avail*occ));
+  $('dr-result').innerHTML=`
+    <div class="calc-result">
+      <div class="result-row"><span class="rl">Period</span><span class="rv neu">${days} days · ${fmt(months,1)} months</span></div>
+      <div class="result-row"><span class="rl">Projected Revenue</span><span class="rv pos">${fmtC(totalRev)}</span></div>
+      <div class="result-row"><span class="rl" style="padding-left:10px">↳ Bkg.com ${fmt(bkgPct*100)}% (−60d)</span><span class="rv pur">${fmtC(totalRev*bkgPct)}</span></div>
+      <div class="result-row"><span class="rl" style="padding-left:10px">↳ Other (post-checkout)</span><span class="rv pos">${fmtC(totalRev*(1-bkgPct))}</span></div>
+      <div class="result-row"><span class="rl">Total Expenses + CAPEX</span><span class="rv neg">- ${fmtC(totalExp)}</span></div>
+      <div class="result-row" style="padding:10px 0"><span class="rl" style="font-weight:700">Net Cashflow</span><span class="rv ${totalNet>=0?'pos':'neg'}" style="font-size:20px">${totalNet>=0?'+':''}${fmtC(totalNet)}</span></div>
+      <div class="result-row"><span class="rl">Net Per Day</span><span class="rv ${dailyNet>=0?'pos':'neg'}">${dailyNet>=0?'+':''}$${fmt(dailyNet,0)}/day</span></div>
+      <div class="result-row"><span class="rl">Revenue Per Day</span><span class="rv pos">$${fmt(moRev/30,0)}/day</span></div>
+      <div class="result-row"><span class="rl">Break-Even Properties</span><span class="rv pur">${breakEven}</span></div>
+      <div class="result-row"><span class="rl">Props for $500/day net</span><span class="rv pur">${propsFor500}</span></div>
+    </div>`;
+  const weeks=Math.ceil(days/7),wL=[],wR=[],wE=[],wN=[];
+  for(let i=0;i<weeks;i++){
+    const wd=Math.min(7,days-i*7),wRv=moRev/30*wd+(i===0?outstanding+inject:0);
+    const wEx=(opex+capex)/30*wd+(i===0?capexOnce:0);
+    wL.push('W'+(i+1));wR.push(+wRv.toFixed(2));wE.push(+wEx.toFixed(2));wN.push(+(wRv-wEx).toFixed(2));
+  }
+  mkChart('ch-daterange','bar',wL,[
+    {label:'Revenue',data:wR,backgroundColor:'rgba(45,212,160,.65)',borderRadius:3,order:2},
+    {label:'Expenses',data:wE,backgroundColor:'rgba(248,113,113,.5)',borderRadius:3,order:2},
+    {label:'Net',data:wN,type:'line',borderColor:'#fbbf24',backgroundColor:'rgba(251,191,36,.1)',tension:.3,fill:true,pointRadius:3,order:1}
+  ],{scales:{x:{ticks:{color:'#8892a4'},grid:{color:'#2a2d3e'}},y:{ticks:{color:'#8892a4',callback:v=>'$'+fmt(v)},grid:{color:'#2a2d3e'}}}});
+}
+
+// ── Compare ───────────────────────────────────────────────────────────────────
+function compareScenarios(){
+  const cfg=[{id:'sa',label:'A',color:'#4f8ef7'},{id:'sb',label:'B',color:'#2dd4a0'},{id:'sc2',label:'C',color:'#fbbf24'}];
+  const data=cfg.map(c=>({...c,props:+$(c.id+'-props').value,adr:+$(c.id+'-adr').value,
+    occ:+$(c.id+'-occ').value/100,avail:+$(c.id+'-avail').value,
+    opex:(+$(c.id+'-bmo').value)+(+$(c.id+'-neo').value)+$(c.id+'-capex').value*1-(+$(c.id+'-inject').value)
+  })).map(s=>({...s,moRev:s.props*s.adr*s.avail*s.occ,moNet:s.props*s.adr*s.avail*s.occ-s.opex,
+    breakEven:Math.ceil(s.opex/(s.adr*s.avail*s.occ))}));
+  $('compare-kpis').innerHTML=data.map(s=>`
+    <div class="calc-result" style="border-color:${s.color}33">
+      <div style="font-size:12px;font-weight:700;color:${s.color};margin-bottom:9px;padding-bottom:7px;border-bottom:1px solid var(--border)">Scenario ${s.label}</div>
+      <div class="result-row"><span class="rl">Monthly Revenue</span><span class="rv" style="color:${s.color}">${fmtC(s.moRev)}</span></div>
+      <div class="result-row"><span class="rl">Monthly Net</span><span class="rv ${s.moNet>=0?'pos':'neg'}">${s.moNet>=0?'+':''}${fmtC(s.moNet)}</span></div>
+      <div class="result-row"><span class="rl">Daily Net</span><span class="rv ${s.moNet>=0?'pos':'neg'}">${s.moNet>=0?'+':''}$${fmt(s.moNet/30,0)}/day</span></div>
+      <div class="result-row"><span class="rl">Break-Even</span><span class="rv pur">${s.breakEven} props</span></div>
+      <div class="result-row"><span class="rl">For $500/day</span><span class="rv pur">${Math.ceil((s.opex+15000)/(s.adr*s.avail*s.occ))} props</span></div>
+    </div>`).join('');
+  mkChart('ch-compare','line',MO,data.map(s=>({
+    label:'Scenario '+s.label,data:MO.map(()=>+s.moNet.toFixed(2)),
+    borderColor:s.color,backgroundColor:s.color+'22',tension:.3,fill:false,pointRadius:3
+  })),{scales:{x:{ticks:{color:'#8892a4'},grid:{color:'#2a2d3e'}},y:{ticks:{color:'#8892a4',callback:v=>'$'+fmt(v)},grid:{color:'#2a2d3e'}}}});
+}
+
+buildOverview();renderDaily();buildExpenses();buildOutstanding();calcForward();goalSeek();dateRange();compareScenarios();
+</script>
+</body>
+</html>
